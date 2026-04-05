@@ -4,15 +4,12 @@
  */
 
 import React, { useState, useRef, useEffect } from "react";
-import { PanelLeft, X, User, Bot, Home, MapPin, Navigation, Phone, Clock, ExternalLink, Loader2, Store, MessageSquare, Plus, Trash2, History, LogOut } from "lucide-react";
+import { PanelLeft, X, User, Bot, Home, MapPin, Navigation, Phone, Clock, ExternalLink, Loader2, Store, MessageSquare, Plus, Trash2, History } from "lucide-react";
 import { PromptInputBox } from "./components/PromptInputBox";
 import { GoogleGenAI } from "@google/genai";
 import { PlaceCard } from "./components/PlaceCard";
 import { LandingSections } from "./components/LandingSections";
 import { PrescriptionScanner } from "./components/PrescriptionScanner";
-import { Login } from "./components/Login";
-import { auth } from "./firebase";
-import { onAuthStateChanged, signOut, isSignInWithEmailLink, signInWithEmailLink } from "firebase/auth";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { motion, AnimatePresence } from "framer-motion";
@@ -45,8 +42,6 @@ const MOROCCAN_CITIES = [
 ];
 
 export default function App() {
-  const [user, setUser] = useState<any>(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -61,43 +56,6 @@ export default function App() {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
-  
-  // Handle Firebase Auth
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      setIsAuthLoading(false);
-    });
-
-    // Handle email sign-in link
-    if (isSignInWithEmailLink(auth, window.location.href)) {
-      let email = window.localStorage.getItem('emailForSignIn');
-      if (!email) {
-        email = window.prompt('Veuillez fournir votre email pour la confirmation');
-      }
-      if (email) {
-        signInWithEmailLink(auth, email, window.location.href)
-          .then(() => {
-            window.localStorage.removeItem('emailForSignIn');
-          })
-          .catch((error) => {
-            console.error("Error signing in with email link", error);
-          });
-      }
-    }
-
-    return () => unsubscribe();
-  }, []);
-
-  const handleSignOut = async () => {
-    try {
-      await signOut(auth);
-      setMessages([]);
-      setCurrentConversationId(null);
-    } catch (error) {
-      console.error("Error signing out", error);
-    }
-  };
   
   // Load conversations from local storage on mount
   useEffect(() => {
@@ -513,18 +471,6 @@ export default function App() {
     setMessages(prev => [...prev, userMessage, modelMessage]);
   };
 
-  if (isAuthLoading) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-[#F0F7FF]">
-        <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Login lang={lang} setLang={setLang} />;
-  }
-
   return (
     <div 
       className="h-[100dvh] flex flex-col font-sans relative overflow-hidden"
@@ -532,7 +478,7 @@ export default function App() {
       lang={lang}
     >
       {/* Background Gradient */}
-      <div className="absolute inset-0 z-0 pointer-events-none bg-[#F0F7FF]" />
+      <div className="absolute inset-0 z-0 pointer-events-none bg-[#F8FBFF]" />
       <div className="absolute bottom-0 left-0 right-0 w-full overflow-hidden z-0 pointer-events-none animate-in fade-in slide-in-from-bottom-24 duration-1000 ease-out flex justify-center items-end h-[85vh] opacity-100">
         <svg 
           viewBox="0 0 2292 800" 
@@ -554,9 +500,9 @@ export default function App() {
               <feGaussianBlur stdDeviation="150" result="effect1_foregroundBlur"/>
             </filter>
             <radialGradient id="paint0_radial_5226_125" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1146 793) rotate(-90) scale(753 1106)">
-              <stop offset="0%" stopColor="#BEE3F8" stopOpacity="0.8" />
-              <stop offset="60%" stopColor="#EBF8FF" stopOpacity="0.5" />
-              <stop offset="100%" stopColor="#F0F7FF" stopOpacity="0" />
+              <stop offset="0%" stopColor="#E6F3FF" stopOpacity="0.6" />
+              <stop offset="60%" stopColor="#F5FAFF" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="#F8FBFF" stopOpacity="0" />
             </radialGradient>
           </defs>
         </svg>
@@ -573,7 +519,7 @@ export default function App() {
       {/* Sidebar */}
       <div className={`fixed top-0 ${lang === 'ar' ? 'right-0' : 'left-0'} bottom-0 w-72 bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out flex flex-col ${isMenuOpen ? "translate-x-0" : (lang === 'ar' ? "translate-x-full" : "-translate-x-full")}`}>
         <div className="p-4 flex items-center justify-between border-b border-gray-100">
-          <div className="text-2xl font-bold tracking-tight text-blue-600">anzar</div>
+          <div className="text-xl md:text-2xl font-bold tracking-tight text-blue-600">anzar</div>
           <motion.button 
             whileHover={{ scale: 1.1, rotate: 90 }}
             whileTap={{ scale: 0.9 }}
@@ -589,7 +535,7 @@ export default function App() {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={startNewChat}
-            className="w-full py-3 px-4 bg-blue-600 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-md hover:bg-blue-700 transition-colors"
+            className="w-full py-2.5 md:py-3 px-4 bg-blue-600 text-white rounded-xl font-bold text-xs md:text-sm flex items-center justify-center gap-2 shadow-md hover:bg-blue-700 transition-colors"
           >
             <Plus className="w-4 h-4" />
             {lang === 'fr' ? 'Nouvelle discussion' : 'محادثة جديدة'}
@@ -643,26 +589,6 @@ export default function App() {
         </div>
 
         <div className="p-4 border-t border-gray-100 bg-gray-50/50">
-          <div className="px-3 py-3 mb-2 flex items-center gap-3 bg-white rounded-xl border border-gray-100 shadow-sm">
-            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 overflow-hidden">
-              {user?.photoURL ? (
-                <img src={user.photoURL} alt={user.displayName || ""} className="w-full h-full object-cover" />
-              ) : (
-                <User className="w-4 h-4" />
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-bold text-gray-900 truncate">{user?.displayName || user?.email?.split('@')[0]}</p>
-              <p className="text-[10px] text-gray-500 truncate">{user?.email}</p>
-            </div>
-            <button 
-              onClick={handleSignOut}
-              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-              title={lang === 'fr' ? 'Déconnexion' : 'تسجيل الخروج'}
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
           <motion.a 
             whileHover={{ x: 5 }}
             href="#" 
@@ -708,7 +634,7 @@ export default function App() {
             onClick={() => setMessages([])}
             className="flex items-center gap-2 hover:opacity-80 transition-opacity"
           >
-            <div className="text-xl font-bold tracking-tight text-blue-900">anzar</div>
+            <div className="text-lg md:text-xl font-bold tracking-tight text-blue-900">anzar</div>
           </motion.button>
         </div>
         <div className="flex items-center gap-2">
@@ -729,7 +655,7 @@ export default function App() {
           {messages.length === 0 ? (
             <div className="w-full">
               <div className="max-w-2xl mx-auto px-6 mt-8 mb-8">
-                <h1 className="text-2xl font-medium text-blue-900 mb-6">
+                <h1 className="text-xl md:text-2xl font-medium text-blue-900 mb-6">
                   {lang === 'fr' ? "Comment puis-je vous aider ?" : "كيف يمكنني مساعدتك؟"}
                 </h1>
 
@@ -786,7 +712,7 @@ export default function App() {
                         : "text-blue-900 py-2"
                     }`}
                   >
-                    <div className="text-sm leading-relaxed whitespace-pre-wrap font-serif prose prose-sm max-w-none prose-p:leading-relaxed prose-strong:text-blue-900 prose-strong:font-bold prose-p:text-blue-800">
+                    <div className="text-xs md:text-sm leading-relaxed whitespace-pre-wrap font-serif prose prose-sm max-w-none prose-p:leading-relaxed prose-strong:text-blue-900 prose-strong:font-bold prose-p:text-blue-800">
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>
                         {msg.text}
                       </ReactMarkdown>
@@ -845,7 +771,7 @@ export default function App() {
         </main>
 
         {/* Input Area */}
-        <div className="relative z-20 p-4 w-full bg-gradient-to-t from-[#F0F7FF] via-[#F0F7FF] to-transparent pt-4 shrink-0">
+        <div className="relative z-20 p-4 w-full bg-gradient-to-t from-[#F8FBFF] via-[#F8FBFF] to-transparent pt-4 shrink-0">
           <div className="max-w-2xl mx-auto relative">
             {/* Pharmacy Bottom Sheet */}
             <AnimatePresence>
@@ -913,9 +839,9 @@ export default function App() {
                             href={pharmacy.uri || `https://www.google.com/maps/dir/?api=1&destination=${pharmacy.lat},${pharmacy.lng}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="w-full py-2.5 bg-gray-900 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors"
+                            className="w-full py-2 md:py-2.5 bg-gray-900 text-white rounded-xl text-xs md:text-sm font-bold flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors"
                           >
-                            <Navigation className="w-4 h-4" />
+                            <Navigation className="w-3.5 h-3.5 md:w-4 md:h-4" />
                             Itinéraire
                           </a>
                         </div>

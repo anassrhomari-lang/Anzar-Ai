@@ -72,15 +72,15 @@ export const LandingSections: React.FC<LandingSectionsProps> = ({ lang, onTrigge
                 <div className="absolute inset-0 bg-red-500 rounded-full blur-2xl opacity-20 animate-pulse" />
                 <Heart className="w-14 h-14 text-red-500 fill-red-500 relative z-10 drop-shadow-[0_0_15px_rgba(239,68,68,0.6)]" />
               </div>
-              <h1 className="text-6xl font-medium tracking-tight flex items-start text-blue-900">
-                Anzar<span className="text-blue-600 text-2xl font-bold ml-0.5 mt-1">AI</span>
+              <h1 className="text-4xl md:text-6xl font-medium tracking-tight flex items-start text-blue-900">
+                Anzar<span className="text-blue-600 text-lg md:text-2xl font-bold ml-0.5 mt-1">AI</span>
               </h1>
             </div>
             
             <motion.div 
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.98 }}
-              className="mt-6 px-6 py-2 bg-white/60 backdrop-blur-md shadow-sm border border-blue-100 rounded-full flex items-center gap-2 transform transition-transform cursor-default"
+              className="mt-6 px-4 md:px-6 py-1.5 md:py-2 bg-white/80 backdrop-blur-md shadow-sm border border-blue-50/50 rounded-full flex items-center gap-2 transform transition-transform cursor-default"
             >
               <Diamond className="w-3.5 h-3.5 text-blue-500 fill-blue-500" />
               <span className="text-xs font-bold tracking-[0.25em] uppercase text-blue-600">
@@ -96,7 +96,7 @@ export const LandingSections: React.FC<LandingSectionsProps> = ({ lang, onTrigge
         <h2 className="text-2xl md:text-3xl font-serif text-blue-900 mb-4 leading-tight mt-8">
           {renderText(text.title1)}
         </h2>
-        <p className="text-blue-700 text-base max-w-xl leading-relaxed mb-12">
+        <p className="text-blue-700 text-sm md:text-base max-w-xl leading-relaxed mb-12">
           {renderText(text.desc1)}
         </p>
       </section>
@@ -106,16 +106,16 @@ export const LandingSections: React.FC<LandingSectionsProps> = ({ lang, onTrigge
         <h2 className="text-2xl md:text-3xl font-serif text-blue-900 mb-4 leading-tight">
           {renderText(text.title2)}
         </h2>
-        <p className="text-blue-700 text-base max-w-xl leading-relaxed mb-12">
+        <p className="text-blue-700 text-sm md:text-base max-w-xl leading-relaxed mb-12">
           {renderText(text.desc2)}
         </p>
 
-        <div className="bg-white/40 backdrop-blur-md border border-blue-100 rounded-3xl p-6 md:p-8 w-full max-w-2xl shadow-inner relative">
+        <div className="bg-white/50 backdrop-blur-md border border-blue-50/50 rounded-3xl p-6 md:p-8 w-full max-w-2xl shadow-inner relative">
           <div className="flex flex-col gap-4">
-            <div className={`bg-blue-50 border border-blue-100 rounded-2xl p-4 shadow-sm max-w-[85%] rounded-es-sm self-start text-start`}>
+            <div className={`bg-blue-50/30 border border-blue-50/50 rounded-2xl p-4 shadow-sm max-w-[85%] rounded-es-sm self-start text-start`}>
               <p className="text-blue-900 font-medium text-sm">{renderText(text.chat1)}</p>
             </div>
-            <div className={`bg-white border border-blue-100 rounded-2xl p-4 shadow-sm max-w-[85%] relative rounded-ee-sm self-end text-start`}>
+            <div className={`bg-white/80 border border-blue-50/50 rounded-2xl p-4 shadow-sm max-w-[85%] relative rounded-ee-sm self-end text-start`}>
               <p className="text-blue-900 font-medium text-sm">{renderText(text.chat2)}</p>
               <div className={`absolute bottom-0 w-8 h-8 rounded-full overflow-hidden border-2 border-blue-100 shadow-sm ${isRtl ? '-right-10' : '-left-10'}`}>
                 <img src="https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?q=80&w=100&auto=format&fit=crop" alt="User" className="w-full h-full object-cover"/>
@@ -149,23 +149,23 @@ export const LandingSections: React.FC<LandingSectionsProps> = ({ lang, onTrigge
           {renderText(text.title3)}
         </h2>
 
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-blue-200 bg-blue-50 text-blue-600 text-xs font-medium mb-6 shadow-sm">
+        <div className="inline-flex items-center gap-2 px-2.5 md:px-3 py-1 md:py-1.5 rounded-full border border-blue-50/50 bg-blue-50/30 text-blue-500 text-[10px] md:text-xs font-medium mb-6 shadow-sm">
           <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
           {renderText(text.badge)}
         </div>
 
-        <p className="text-blue-700 text-base max-w-xl leading-relaxed mb-10">
+        <p className="text-blue-700 text-sm md:text-base max-w-xl leading-relaxed mb-10">
           {renderText(text.desc3)}
         </p>
 
-        <div className="bg-white/60 backdrop-blur-md rounded-2xl p-6 w-full max-w-xl shadow-sm border border-blue-100 text-start">
+        <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 w-full max-w-xl shadow-sm border border-blue-50/50 text-start">
           <div className="flex flex-col gap-5">
             <div className="flex items-start gap-4 pb-5 border-b border-blue-50">
               <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0 text-blue-600">
                 <Pill className="w-4 h-4" />
               </div>
               <div className="text-start w-full">
-                <h4 className="font-semibold text-blue-900 text-base">{text.feat1Title}</h4>
+                <h4 className="font-semibold text-blue-900 text-sm md:text-base">{text.feat1Title}</h4>
                 <p className="text-blue-600/70 text-sm">{text.feat1Desc}</p>
               </div>
             </div>
@@ -179,7 +179,7 @@ export const LandingSections: React.FC<LandingSectionsProps> = ({ lang, onTrigge
                 <Store className="w-4 h-4" />
               </div>
               <div className="text-start w-full">
-                <h4 className="font-semibold text-blue-900 text-base">{text.feat2Title}</h4>
+                <h4 className="font-semibold text-blue-900 text-sm md:text-base">{text.feat2Title}</h4>
                 <p className="text-blue-600/70 text-sm">{text.feat2Desc}</p>
               </div>
             </motion.div>
@@ -193,7 +193,7 @@ export const LandingSections: React.FC<LandingSectionsProps> = ({ lang, onTrigge
                 <ClipboardList className="w-4 h-4" />
               </div>
               <div className="text-start w-full">
-                <h4 className="font-semibold text-blue-900 text-base">{text.feat3Title}</h4>
+                <h4 className="font-semibold text-blue-900 text-sm md:text-base">{text.feat3Title}</h4>
                 <p className="text-blue-600/70 text-sm">{text.feat3Desc}</p>
               </div>
             </motion.div>

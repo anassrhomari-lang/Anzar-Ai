@@ -35,42 +35,42 @@ export const PlaceCard: React.FC<PlaceCardProps> = ({ place, lang = 'fr' }) => {
               <img src={photoUrl} alt={title} className="w-full h-full object-cover" />
             </div>
             <div className="text-start">
-              <h3 className="font-semibold text-gray-900">{title}</h3>
-              <p className="text-sm text-gray-500">{mockSpeciality}</p>
+              <h3 className="font-semibold text-gray-900 text-sm md:text-base">{title}</h3>
+              <p className="text-xs md:text-sm text-gray-500">{mockSpeciality}</p>
             </div>
           </div>
           <button 
             onClick={() => setShowDetails(false)}
-            className="flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-gray-900 bg-gray-50 px-3 py-1.5 rounded-full"
+            className="flex items-center gap-1 text-xs md:text-sm font-medium text-gray-600 hover:text-gray-900 bg-gray-50 px-2.5 md:px-3 py-1 md:py-1.5 rounded-full"
           >
-            {lang === 'fr' ? "Fermer" : "إغلاق"} <ArrowRight className={`w-4 h-4 ${isRtl ? 'rotate-180' : ''}`} />
+            {lang === 'fr' ? "Fermer" : "إغلاق"} <ArrowRight className={`w-3.5 h-3.5 md:w-4 md:h-4 ${isRtl ? 'rotate-180' : ''}`} />
           </button>
         </div>
 
         <div className={`grid grid-cols-2 gap-y-6 gap-x-4 mb-6 text-start`}>
           <div>
-            <p className="text-xs text-gray-500 mb-1">{lang === 'fr' ? "Date" : "التاريخ"}</p>
-            <p className="text-sm font-medium text-gray-900">{mockDate}</p>
+            <p className="text-[10px] md:text-xs text-gray-500 mb-1">{lang === 'fr' ? "Date" : "التاريخ"}</p>
+            <p className="text-xs md:text-sm font-medium text-gray-900">{mockDate}</p>
           </div>
           <div>
-            <p className="text-xs text-gray-500 mb-1">{lang === 'fr' ? "Heure" : "الوقت"}</p>
-            <p className="text-sm font-medium text-gray-900">{mockTime}</p>
+            <p className="text-[10px] md:text-xs text-gray-500 mb-1">{lang === 'fr' ? "Heure" : "الوقت"}</p>
+            <p className="text-xs md:text-sm font-medium text-gray-900">{mockTime}</p>
           </div>
           <div>
-            <p className="text-xs text-gray-500 mb-1">{lang === 'fr' ? "Clinique/Pharmacie" : "عيادة/صيدلية"}</p>
-            <p className="text-sm font-medium text-gray-900">{title}</p>
+            <p className="text-[10px] md:text-xs text-gray-500 mb-1">{lang === 'fr' ? "Clinique/Pharmacie" : "عيادة/صيدلية"}</p>
+            <p className="text-xs md:text-sm font-medium text-gray-900">{title}</p>
           </div>
           <div>
-            <p className="text-xs text-gray-500 mb-1">{lang === 'fr' ? "Durée" : "المدة"}</p>
-            <p className="text-sm font-medium text-gray-900">{mockDuration}</p>
+            <p className="text-[10px] md:text-xs text-gray-500 mb-1">{lang === 'fr' ? "Durée" : "المدة"}</p>
+            <p className="text-xs md:text-sm font-medium text-gray-900">{mockDuration}</p>
           </div>
           <div>
-            <p className="text-xs text-gray-500 mb-1">{lang === 'fr' ? "Contact" : "اتصال"}</p>
-            <p className="text-sm font-medium text-gray-900">{mockContact}</p>
+            <p className="text-[10px] md:text-xs text-gray-500 mb-1">{lang === 'fr' ? "Contact" : "اتصال"}</p>
+            <p className="text-xs md:text-sm font-medium text-gray-900">{mockContact}</p>
           </div>
           <div>
-            <p className="text-xs text-gray-500 mb-1">{lang === 'fr' ? "Type" : "النوع"}</p>
-            <p className="text-sm font-medium text-gray-900">{mockType}</p>
+            <p className="text-[10px] md:text-xs text-gray-500 mb-1">{lang === 'fr' ? "Type" : "النوع"}</p>
+            <p className="text-xs md:text-sm font-medium text-gray-900">{mockType}</p>
           </div>
         </div>
 
@@ -90,8 +90,8 @@ export const PlaceCard: React.FC<PlaceCardProps> = ({ place, lang = 'fr' }) => {
                 <MapPin className="w-4 h-4 text-white" />
               </div>
             </div>
-            <div className={`absolute bottom-2 end-2 bg-white px-2 py-1 rounded text-xs font-medium text-red-500 flex items-center gap-1 shadow-sm`}>
-              <MapPin className="w-3 h-3" /> {lang === 'fr' ? "Ouvrir la carte" : "فتح الخريطة"}
+            <div className={`absolute bottom-2 end-2 bg-white px-2 py-1 rounded text-[10px] md:text-xs font-medium text-red-500 flex items-center gap-1 shadow-sm`}>
+              <MapPin className="w-2.5 h-2.5 md:w-3 h-3" /> {lang === 'fr' ? "Ouvrir la carte" : "فتح الخريطة"}
             </div>
           </a>
         </div>

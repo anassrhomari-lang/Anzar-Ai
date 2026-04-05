@@ -14,17 +14,11 @@ const styles = `
     --ring-offset: 0 !important;
   }
   textarea::-webkit-scrollbar {
-    width: 6px;
+    display: none;
   }
-  textarea::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  textarea::-webkit-scrollbar-thumb {
-    background-color: rgba(0, 0, 0, 0.1);
-    border-radius: 3px;
-  }
-  textarea::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(0, 0, 0, 0.2);
+  textarea {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 `;
 
@@ -40,7 +34,7 @@ interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement
 const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({ className, ...props }, ref) => (
   <textarea
     className={cn(
-      "flex w-full rounded-md border-none bg-transparent px-3 py-2.5 text-base text-blue-900 placeholder:text-blue-400 focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-50 min-h-[44px] resize-none scrollbar-thin scrollbar-thumb-blue-100 scrollbar-track-transparent hover:scrollbar-thumb-blue-200",
+      "flex w-full rounded-md border-none bg-transparent px-3 py-2.5 text-sm md:text-base text-blue-900 placeholder:text-blue-400 focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-50 min-h-[44px] resize-none scrollbar-thin scrollbar-thumb-blue-100 scrollbar-track-transparent hover:scrollbar-thumb-blue-200",
       className
     )}
     ref={ref}
@@ -387,7 +381,7 @@ const PromptInputTextarea: React.FC<PromptInputTextareaProps & React.ComponentPr
       value={value}
       onChange={(e) => setValue(e.target.value)}
       onKeyDown={handleKeyDown}
-      className={cn("text-base", className)}
+      className={cn("text-sm md:text-base", className)}
       disabled={disabled}
       placeholder={placeholder}
       {...props}
@@ -569,10 +563,10 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
         isLoading={isLoading}
         onSubmit={handleSubmit}
         className={cn(
-          "w-full bg-white/60 backdrop-blur-md transition-all duration-300 ease-in-out",
+          "w-full bg-white/80 backdrop-blur-md transition-all duration-300 ease-in-out",
           isRecording 
-            ? "bg-white border border-blue-200" 
-            : "border border-blue-100 shadow-sm",
+            ? "bg-white border border-blue-50" 
+            : "border border-blue-50/50 shadow-sm",
           className
         )}
         disabled={isLoading || isRecording}
@@ -625,7 +619,7 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
                 ? (lang === 'fr' ? "Trouver un médecin spécialiste" : "البحث عن طبيب متخصص")
                 : placeholder || (lang === 'fr' ? "Décrivez vos symptômes ou posez une question..." : "صف الأعراض أو اطرح سؤالاً...")
             }
-            className="text-base bg-transparent px-1"
+            className="text-sm md:text-base bg-transparent px-1"
           />
         </div>
 
@@ -683,19 +677,19 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
                   handleToggleChange("pharmacy");
                 }}
                 className={cn(
-                  "rounded-full transition-all flex items-center gap-1 px-2 py-1 border h-8",
+                  "rounded-full transition-all flex items-center gap-1 px-2 md:px-2.5 py-1 border h-8 md:h-9",
                   showPharmacy
-                    ? "bg-blue-100 border-blue-400 text-blue-700"
-                    : "bg-white/40 border-blue-100 shadow-sm text-blue-400 hover:text-blue-600"
+                    ? "bg-blue-50 border-blue-200 text-blue-600"
+                    : "bg-white/40 border-blue-50/50 shadow-sm text-blue-300 hover:text-blue-500"
                 )}
               >
-                <div className="w-5 h-5 flex items-center justify-center flex-shrink-0">
+                <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center flex-shrink-0">
                   <motion.div
                     animate={{ rotate: showPharmacy ? 360 : 0, scale: showPharmacy ? 1.1 : 1 }}
                     whileHover={{ rotate: showPharmacy ? 360 : 15, scale: 1.1, transition: { type: "spring", stiffness: 300, damping: 10 } }}
                     transition={{ type: "spring", stiffness: 260, damping: 25 }}
                   >
-                    <Navigation className={cn("w-4 h-4", showPharmacy ? "text-[#10B981]" : "text-inherit")} />
+                    <Navigation className={cn("w-3.5 h-3.5 md:w-4 md:h-4", showPharmacy ? "text-[#10B981]" : "text-inherit")} />
                   </motion.div>
                 </div>
                 <AnimatePresence>
@@ -705,7 +699,7 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
                       animate={{ width: "auto", opacity: 1 }}
                       exit={{ width: 0, opacity: 0 }}
                       transition={{ duration: 0.2 }}
-                      className="text-xs overflow-hidden whitespace-nowrap text-[#10B981] flex-shrink-0"
+                      className="text-[10px] md:text-xs overflow-hidden whitespace-nowrap text-[#10B981] flex-shrink-0 font-bold"
                     >
                       {lang === 'fr' ? "Garde" : "حراسة"}
                     </motion.span>
@@ -719,19 +713,19 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
                 type="button"
                 onClick={handleLocationToggle}
                 className={cn(
-                  "rounded-full transition-all flex items-center gap-1 px-2 py-1 border h-8",
+                  "rounded-full transition-all flex items-center gap-1 px-2 md:px-2.5 py-1 border h-8 md:h-9",
                   showLocation
-                    ? "bg-blue-100 border-blue-400 text-blue-700"
-                    : "bg-transparent border-transparent text-blue-400 hover:text-blue-600"
+                    ? "bg-blue-50 border-blue-200 text-blue-600"
+                    : "bg-transparent border-transparent text-blue-300 hover:text-blue-500"
                 )}
               >
-                <div className="w-5 h-5 flex items-center justify-center flex-shrink-0">
+                <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center flex-shrink-0">
                   <motion.div
                     animate={{ rotate: showLocation ? 360 : 0, scale: showLocation ? 1.1 : 1 }}
                     whileHover={{ rotate: showLocation ? 360 : 15, scale: 1.1, transition: { type: "spring", stiffness: 300, damping: 10 } }}
                     transition={{ type: "spring", stiffness: 260, damping: 25 }}
                   >
-                    <MapPin className={cn("w-4 h-4", showLocation ? "text-[#F97316]" : "text-inherit")} />
+                    <MapPin className={cn("w-3.5 h-3.5 md:w-4 md:h-4", showLocation ? "text-[#F97316]" : "text-inherit")} />
                   </motion.div>
                 </div>
                 <AnimatePresence>
@@ -741,7 +735,7 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
                       animate={{ width: "auto", opacity: 1 }}
                       exit={{ width: 0, opacity: 0 }}
                       transition={{ duration: 0.2 }}
-                      className="text-xs overflow-hidden whitespace-nowrap text-[#F97316] flex-shrink-0"
+                      className="text-[10px] md:text-xs overflow-hidden whitespace-nowrap text-[#F97316] flex-shrink-0 font-bold"
                     >
                       {lang === 'fr' ? "Médecin" : "طبيب"}
                     </motion.span>
