@@ -1,7 +1,7 @@
 import React from "react";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { ArrowUp, Paperclip, Square, X, StopCircle, Mic, Pill, MapPin, Navigation, Scan } from "lucide-react";
+import { ArrowUp, Paperclip, Square, X, StopCircle, Mic, Pill, MapPin, Navigation, Scan, Search, Activity, Send } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 // Utility function for className merging
@@ -444,9 +444,12 @@ interface PromptInputBoxProps {
   onTriggerPharmacy?: () => void;
   onTriggerScanner?: () => void;
   onTriggerChecker?: () => void;
+  onTriggerSearch?: () => void;
+  consentChecked?: boolean;
+  onConsentChange?: (checked: boolean) => void;
 }
 export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref: React.Ref<HTMLDivElement>) => {
-  const { onSend = () => {}, isLoading = false, placeholder, className, lang = 'fr', onTriggerPharmacy, onTriggerScanner, onTriggerChecker } = props;
+  const { onSend = () => {}, isLoading = false, placeholder, className, lang = 'fr', onTriggerPharmacy, onTriggerScanner, onTriggerChecker, onTriggerSearch, consentChecked = false, onConsentChange } = props;
   const [input, setInput] = React.useState("");
   const [files, setFiles] = React.useState<File[]>([]);
   const [filePreviews, setFilePreviews] = React.useState<{ [key: string]: string }>({});
@@ -454,7 +457,6 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
   const [isRecording, setIsRecording] = React.useState(false);
   const [showPharmacy, setShowPharmacy] = React.useState(false);
   const [showLocation, setShowLocation] = React.useState(false);
-  const [consentChecked, setConsentChecked] = React.useState(false);
   const uploadInputRef = React.useRef<HTMLInputElement>(null);
   const promptBoxRef = React.useRef<HTMLDivElement>(null);
 
@@ -557,17 +559,15 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
   const hasContent = input.trim() !== "" || files.length > 0;
 
   return (
-    <>
+    <div className="flex flex-col gap-3 w-full">
       <PromptInput
         value={input}
         onValueChange={setInput}
         isLoading={isLoading}
         onSubmit={handleSubmit}
         className={cn(
-          "w-full bg-white/60 backdrop-blur-md transition-all duration-300 ease-in-out",
-          isRecording 
-            ? "bg-white border border-blue-50/30" 
-            : "border border-blue-50/30 shadow-sm",
+          "w-full bg-gray-100/80 border-none shadow-none rounded-[2rem] p-4 transition-all duration-300",
+          isRecording && "bg-gray-200/80",
           className
         )}
         disabled={isLoading || isRecording}
@@ -576,250 +576,123 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
-        {files.length > 0 && !isRecording && (
-          <div className="flex flex-wrap gap-2 p-0 pb-1 transition-all duration-300">
-            {files.map((file, index) => (
-              <div key={index} className="relative group">
-                {file.type.startsWith("image/") && filePreviews[file.name] && (
-                  <div
-                    className="w-16 h-16 rounded-lg overflow-hidden cursor-pointer transition-all duration-300"
-                    onClick={() => openImageModal(filePreviews[file.name])}
-                  >
-                    <img
-                      src={filePreviews[file.name]}
-                      alt={file.name}
-                      className="h-full w-full object-cover"
-                    />
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRemoveFile(index);
-                      }}
-                      className="absolute top-1 end-1 rounded-full bg-black/70 p-0.5 opacity-100 transition-opacity"
-                    >
-                      <X className="h-3 w-3 text-white" />
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div
-          className={cn(
-            "transition-all duration-300",
-            isRecording ? "h-0 overflow-hidden opacity-0" : "opacity-100"
-          )}
-        >
-          <PromptInputTextarea
-            placeholder={
-              showPharmacy
-                ? (lang === 'fr' ? "Trouver une pharmacie de garde" : "البحث عن صيدلية حراسة")
-                : showLocation
-                ? (lang === 'fr' ? "Trouver un médecin spécialiste" : "البحث عن طبيب متخصص")
-                : placeholder || (lang === 'fr' ? "Décrivez vos symptômes ou posez une question..." : "صف الأعراض أو اطرح سؤالاً...")
-            }
-            className="text-sm md:text-base bg-transparent px-1"
-          />
-        </div>
-
-        {isRecording && (
-          <VoiceRecorder
-            isRecording={isRecording}
-            onStartRecording={handleStartRecording}
-            onStopRecording={handleStopRecording}
-            lang={lang}
-          />
-        )}
-
-        <PromptInputActions className="flex items-center justify-between gap-2 p-0 pt-2">
+        <div className="flex flex-col min-h-[100px] justify-between">
           <div
             className={cn(
-              "flex items-center gap-1 transition-opacity duration-300",
-              isRecording ? "opacity-0 invisible h-0" : "opacity-100 visible"
+              "transition-all duration-300 flex-1",
+              isRecording ? "h-0 overflow-hidden opacity-0" : "opacity-100"
             )}
           >
-            <PromptInputAction tooltip={lang === 'fr' ? "Scanner une ordonnance" : "مسح الوصفة الطبية"}>
-              <button
-                onClick={onTriggerScanner}
-                className="flex h-8 w-8 text-blue-400 cursor-pointer items-center justify-center rounded-full transition-colors hover:bg-blue-50 hover:text-blue-600"
-                disabled={isRecording}
-              >
-                <Scan className="h-5 w-5 transition-colors" />
-              </button>
-            </PromptInputAction>
+            <PromptInputTextarea
+              placeholder={
+                showPharmacy
+                  ? (lang === 'fr' ? "Trouver une pharmacie de garde" : "البحث عن صيدلية حراسة")
+                  : showLocation
+                  ? (lang === 'fr' ? "Trouver un médecin spécialiste" : "البحث عن طبيب متخصص")
+                  : placeholder || (lang === 'fr' ? "Décrivez vos symptômes ou posez une question..." : "صف الأعراض أو اطرح سؤالاً...")
+              }
+              className="text-sm md:text-base bg-transparent px-1 min-h-[60px]"
+            />
+          </div>
 
-            <PromptInputAction tooltip={lang === 'fr' ? "Scanner mon ordonnance" : "مسح وصفتي الطبية"}>
-              <button
-                onClick={onTriggerScanner}
-                className="flex h-8 w-8 text-blue-400 cursor-pointer items-center justify-center rounded-full transition-colors hover:bg-blue-50 hover:text-blue-600"
-                disabled={isRecording}
-              >
-                <Scan className="h-5 w-5 transition-colors" />
-              </button>
-            </PromptInputAction>
+          {isRecording && (
+            <VoiceRecorder
+              isRecording={isRecording}
+              onStartRecording={handleStartRecording}
+              onStopRecording={handleStopRecording}
+              lang={lang}
+            />
+          )}
 
-            <PromptInputAction tooltip="Upload image">
-              <button
-                onClick={() => uploadInputRef.current?.click()}
-                className="flex h-8 w-8 text-blue-400 cursor-pointer items-center justify-center rounded-full transition-colors hover:bg-blue-50 hover:text-blue-600"
-                disabled={isRecording}
-              >
-                <Paperclip className="h-5 w-5 transition-colors" />
-                <input
-                  ref={uploadInputRef}
-                  type="file"
-                  className="hidden"
-                  onChange={(e) => {
+          <div className="flex items-center justify-between mt-2">
+            <div className="flex items-center gap-0.5">
+              <PromptInputAction tooltip={lang === 'fr' ? "Scanner une ordonnance" : "مسح الوصفة الطبية"}>
+                <button onClick={onTriggerScanner} className="p-2 text-blue-400 hover:text-blue-600 transition-colors">
+                  <Scan className="h-5 w-5" />
+                </button>
+              </PromptInputAction>
+
+              <PromptInputAction tooltip={lang === 'fr' ? "Rechercher un médicament" : "البحث عن دواء"}>
+                <button onClick={onTriggerSearch} className="p-2 text-blue-400 hover:text-blue-600 transition-colors">
+                  <Search className="h-5 w-5" />
+                </button>
+              </PromptInputAction>
+
+              <PromptInputAction tooltip={lang === 'fr' ? "Vérifier mes médicaments" : "التحقق من أدويتي"}>
+                <button onClick={onTriggerChecker} className="p-2 text-blue-400 hover:text-blue-600 transition-colors">
+                  <Activity className="h-5 w-5" />
+                </button>
+              </PromptInputAction>
+
+              <PromptInputAction tooltip="Upload image">
+                <button onClick={() => uploadInputRef.current?.click()} className="p-2 text-blue-400 hover:text-blue-600 transition-colors">
+                  <Paperclip className="h-5 w-5" />
+                  <input ref={uploadInputRef} type="file" className="hidden" onChange={(e) => {
                     if (e.target.files && e.target.files.length > 0) processFile(e.target.files[0]);
                     if (e.target) e.target.value = "";
-                  }}
-                  accept="image/*"
-                />
-              </button>
-            </PromptInputAction>
+                  }} accept="image/*" />
+                </button>
+              </PromptInputAction>
 
-            <div className="flex items-center">
+              <div className="flex items-center ml-1">
+                <button
+                  onClick={handleSubmit}
+                  disabled={!hasContent || !consentChecked || isLoading}
+                  className={cn(
+                    "w-8 h-8 rounded-full flex items-center justify-center transition-all",
+                    hasContent && consentChecked ? "bg-gray-300 text-blue-600" : "bg-transparent text-gray-400"
+                  )}
+                >
+                  <Send className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="h-4 w-[1px] bg-gray-300 mx-2" />
+
               <button
-                type="button"
                 onClick={() => {
                   if (onTriggerPharmacy) onTriggerPharmacy();
                   handleToggleChange("pharmacy");
                 }}
                 className={cn(
-                  "rounded-full transition-all flex items-center gap-1 px-2 md:px-2.5 py-1 border h-8 md:h-9",
-                  showPharmacy
-                    ? "bg-blue-50/50 border-blue-100 text-blue-600"
-                    : "bg-white/20 border-blue-50/20 shadow-sm text-blue-200 hover:text-blue-400"
+                  "p-2 transition-colors",
+                  showPharmacy ? "text-blue-600" : "text-blue-400 hover:text-blue-600"
                 )}
               >
-                <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center flex-shrink-0">
-                  <motion.div
-                    animate={{ rotate: showPharmacy ? 360 : 0, scale: showPharmacy ? 1.1 : 1 }}
-                    whileHover={{ rotate: showPharmacy ? 360 : 15, scale: 1.1, transition: { type: "spring", stiffness: 300, damping: 10 } }}
-                    transition={{ type: "spring", stiffness: 260, damping: 25 }}
-                  >
-                    <Navigation className={cn("w-3.5 h-3.5 md:w-4 md:h-4", showPharmacy ? "text-[#10B981]" : "text-inherit")} />
-                  </motion.div>
-                </div>
-                <AnimatePresence>
-                  {showPharmacy && (
-                    <motion.span
-                      initial={{ width: 0, opacity: 0 }}
-                      animate={{ width: "auto", opacity: 1 }}
-                      exit={{ width: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="text-[10px] md:text-xs overflow-hidden whitespace-nowrap text-[#10B981] flex-shrink-0 font-bold"
-                    >
-                      {lang === 'fr' ? "Garde" : "حراسة"}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </button>
-
-              <CustomDivider />
-
-              <button
-                type="button"
-                onClick={handleLocationToggle}
-                className={cn(
-                  "rounded-full transition-all flex items-center gap-1 px-2 md:px-2.5 py-1 border h-8 md:h-9",
-                  showLocation
-                    ? "bg-blue-50/50 border-blue-100 text-blue-600"
-                    : "bg-transparent border-transparent text-blue-200 hover:text-blue-400"
-                )}
-              >
-                <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center flex-shrink-0">
-                  <motion.div
-                    animate={{ rotate: showLocation ? 360 : 0, scale: showLocation ? 1.1 : 1 }}
-                    whileHover={{ rotate: showLocation ? 360 : 15, scale: 1.1, transition: { type: "spring", stiffness: 300, damping: 10 } }}
-                    transition={{ type: "spring", stiffness: 260, damping: 25 }}
-                  >
-                    <MapPin className={cn("w-3.5 h-3.5 md:w-4 md:h-4", showLocation ? "text-[#F97316]" : "text-inherit")} />
-                  </motion.div>
-                </div>
-                <AnimatePresence>
-                  {showLocation && (
-                    <motion.span
-                      initial={{ width: 0, opacity: 0 }}
-                      animate={{ width: "auto", opacity: 1 }}
-                      exit={{ width: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="text-[10px] md:text-xs overflow-hidden whitespace-nowrap text-[#F97316] flex-shrink-0 font-bold"
-                    >
-                      {lang === 'fr' ? "Médecin" : "طبيب"}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
+                <MapPin className="h-5 w-5" />
               </button>
             </div>
-          </div>
 
-          <PromptInputAction
-            tooltip={
-              isLoading
-                ? "Stop generation"
-                : isRecording
-                ? "Stop recording"
-                : hasContent
-                ? "Send message"
-                : "Voice message"
-            }
-          >
-            <Button
-              variant="default"
-              size="icon"
+            <button
+              onClick={() => setIsRecording(!isRecording)}
               className={cn(
-                "h-8 w-8 rounded-full transition-all duration-200",
-                isRecording
-                  ? "bg-transparent hover:bg-blue-50 text-red-500 hover:text-red-400"
-                  : hasContent
-                  ? consentChecked
-                    ? "bg-blue-600 hover:bg-blue-500 text-white shadow-md"
-                    : "bg-blue-100 text-blue-300 cursor-not-allowed"
-                  : "bg-transparent hover:bg-blue-50 text-blue-400 hover:text-blue-600"
+                "p-2 transition-colors",
+                isRecording ? "text-red-500" : "text-blue-400 hover:text-blue-600"
               )}
-              onClick={() => {
-                if (isRecording) setIsRecording(false);
-                else if (hasContent && consentChecked) handleSubmit();
-                else if (!hasContent) setIsRecording(true);
-              }}
-              disabled={(isLoading && !hasContent) || (hasContent && !consentChecked)}
             >
-              {isLoading ? (
-                <Square className="h-4 w-4 fill-blue-600 animate-pulse" />
-              ) : isRecording ? (
-                <StopCircle className="h-5 w-5 text-red-500" />
-              ) : hasContent ? (
-                <ArrowUp className="h-4 w-4 text-white" />
-              ) : (
-                <Mic className="h-5 w-5 text-blue-400 hover:text-blue-600 transition-colors" />
-              )}
-            </Button>
-          </PromptInputAction>
-        </PromptInputActions>
+              {isRecording ? <StopCircle className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+            </button>
+          </div>
+        </div>
       </PromptInput>
 
-      <div className="mt-3 flex flex-col gap-2 px-2">
-        <div className="flex items-center gap-2 overflow-hidden">
-          <input
-            type="checkbox"
-            id="consent"
-            checked={consentChecked}
-            onChange={(e) => setConsentChecked(e.target.checked)}
-            className="mt-0.5 w-4 h-4 rounded border-gray-300 text-[#4B5E7C] focus:ring-[#4B5E7C] cursor-pointer flex-shrink-0"
-          />
-          <label htmlFor="consent" className="text-[10px] sm:text-xs text-blue-400/60 cursor-pointer select-none leading-tight truncate">
-            {lang === 'fr' 
-              ? "Je comprends que mes données ne sont ni partagées ni stockées."
-              : "أفهم أن بياناتي لا تتم مشاركتها أو تخزينها."}
-          </label>
-        </div>
+      <div className="flex items-center gap-2 px-4">
+        <input 
+          type="checkbox" 
+          id="consent" 
+          checked={consentChecked}
+          onChange={(e) => onConsentChange?.(e.target.checked)}
+          className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+        />
+        <label htmlFor="consent" className="text-[10px] md:text-xs text-blue-400 cursor-pointer select-none">
+          {lang === 'fr' 
+            ? "Je comprends que mes données ne sont ni partagées ni stockées."
+            : "أفهم أن بياناتي لا يتم مشاركتها ولا تخزينها."}
+        </label>
       </div>
 
       <ImageViewDialog imageUrl={selectedImage} onClose={() => setSelectedImage(null)} />
-    </>
+    </div>
   );
 });
 PromptInputBox.displayName = "PromptInputBox";

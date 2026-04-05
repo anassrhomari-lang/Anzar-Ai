@@ -10,6 +10,7 @@ import { GoogleGenAI } from "@google/genai";
 import { PlaceCard } from "./components/PlaceCard";
 import { LandingSections } from "./components/LandingSections";
 import { PrescriptionScanner } from "./components/PrescriptionScanner";
+import { MedicineSearch } from "./components/MedicineSearch";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { motion, AnimatePresence } from "framer-motion";
@@ -54,10 +55,12 @@ export default function App() {
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [manualCity, setManualCity] = useState("");
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isCheckerOpen, setIsCheckerOpen] = useState(false);
   const [checkerInput, setCheckerInput] = useState("");
   const [checkerResult, setCheckerResult] = useState<{ status: 'green' | 'yellow' | 'red', text: string } | null>(null);
   const [isChecking, setIsChecking] = useState(false);
+  const [consentChecked, setConsentChecked] = useState(false);
 
   const checkInteractions = async () => {
     if (!checkerInput.trim()) return;
@@ -728,36 +731,22 @@ export default function App() {
 
                 <div className="flex flex-col gap-2.5 items-start">
                   <button 
+                    onClick={() => setIsSearchOpen(true)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100 hover:bg-slate-200 transition-all text-blue-800 text-sm font-medium shadow-sm"
+                  >
+                    {lang === 'fr' ? "Rechercher un médicament" : "البحث عن دواء"}
+                  </button>
+                  <button 
                     onClick={() => setIsCheckerOpen(true)}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-blue-100 hover:bg-blue-50/50 transition-all text-blue-800 text-xs bg-white/40 backdrop-blur-md shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0"
+                    className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100 hover:bg-slate-200 transition-all text-blue-800 text-sm font-medium shadow-sm"
                   >
-                    <span className="font-medium">
-                      {lang === 'fr' ? "Vérifier mes médicaments" : "التحقق من أدويتي"}
-                    </span>
-                  </button>
-                  <button 
-                    onClick={() => handleSend(lang === 'fr' ? "Comprendre mon ordonnance" : "فهم وصفتي الطبية")}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-blue-100 hover:bg-blue-50/50 transition-all text-blue-800 text-xs bg-white/40 backdrop-blur-md shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0"
-                  >
-                    <span className="font-medium">
-                      {lang === 'fr' ? "Comprendre mon ordonnance" : "فهم وصفتي الطبية"}
-                    </span>
-                  </button>
-                  <button 
-                    onClick={() => handleSend(lang === 'fr' ? "Pharmacie de garde ouverte maintenant" : "صيدلية حراسة مفتوحة الآن")}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-blue-100 bg-white/40 hover:bg-blue-50/50 transition-all text-blue-800 text-xs shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0"
-                  >
-                    <span className="font-medium">
-                      {lang === 'fr' ? "Pharmacie de garde ouverte maintenant" : "صيدلية حراسة مفتوحة الآن"}
-                    </span>
+                    {lang === 'fr' ? "Vérifier mes médicaments" : "التحقق من أدويتي"}
                   </button>
                   <button 
                     onClick={() => handleSend(lang === 'fr' ? "Interactions médicamenteuses de mon ordonnance" : "التفاعلات الدوائية لوصفتي الطبية")}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-blue-100 hover:bg-blue-50/50 transition-all text-blue-800 text-xs bg-white/40 backdrop-blur-md shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0"
+                    className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100 hover:bg-slate-200 transition-all text-blue-800 text-sm font-medium shadow-sm"
                   >
-                    <span className="font-medium">
-                      {lang === 'fr' ? "Interactions médicamenteuses de mon ordonnance" : "التفاعلات الدوائية لوصفتي الطبية"}
-                    </span>
+                    {lang === 'fr' ? "Interactions médicamenteuses de mon ordonnance" : "التفاعلات الدوائية لوصفتي الطبية"}
                   </button>
                 </div>
               </div>
@@ -767,6 +756,7 @@ export default function App() {
                 onTriggerPharmacy={triggerPharmacyFinder} 
                 onTriggerScanner={() => setIsScannerOpen(true)}
                 onTriggerChecker={() => setIsCheckerOpen(true)}
+                onTriggerSearch={() => setIsSearchOpen(true)}
               />
             </div>
           ) : (
@@ -1001,6 +991,16 @@ export default function App() {
               )}
             </AnimatePresence>
 
+            <div className="mb-4 text-center">
+              <h2 className="text-xl md:text-2xl font-medium text-blue-900">
+                {lang === 'fr' ? (
+                  <>Assistant pharmaceutique <span className="font-bold text-blue-800">rapide</span> et <span className="font-bold text-blue-800">gratuit</span></>
+                ) : (
+                  <>مساعد صيدلي <span className="font-bold text-blue-800">سريع</span> و <span className="font-bold text-blue-800">مجاني</span></>
+                )}
+              </h2>
+            </div>
+
             <PromptInputBox 
               placeholder={lang === 'fr' ? "Décrivez vos symptômes ou posez une question..." : "صف الأعراض أو اطرح سؤالاً..."}
               onSend={handleSend}
@@ -1009,6 +1009,9 @@ export default function App() {
               onTriggerPharmacy={triggerPharmacyFinder}
               onTriggerScanner={() => setIsScannerOpen(true)}
               onTriggerChecker={() => setIsCheckerOpen(true)}
+              onTriggerSearch={() => setIsSearchOpen(true)}
+              consentChecked={consentChecked}
+              onConsentChange={setConsentChecked}
             />
           </div>
         </div>
@@ -1019,6 +1022,15 @@ export default function App() {
             lang={lang}
             onClose={() => setIsScannerOpen(false)}
             onScanComplete={handleScanComplete}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isSearchOpen && (
+          <MedicineSearch 
+            lang={lang}
+            onClose={() => setIsSearchOpen(false)}
           />
         )}
       </AnimatePresence>

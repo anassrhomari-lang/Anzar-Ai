@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, Pill, ClipboardList, Store, Heart, Diamond, Activity, Thermometer, Plus } from 'lucide-react';
+import { Sparkles, Pill, ClipboardList, Store, Heart, Diamond, Activity, Thermometer, Plus, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface LandingSectionsProps {
@@ -7,6 +7,7 @@ interface LandingSectionsProps {
   onTriggerPharmacy?: () => void;
   onTriggerScanner?: () => void;
   onTriggerChecker?: () => void;
+  onTriggerSearch?: () => void;
 }
 
 const t = {
@@ -20,14 +21,14 @@ const t = {
     title3: "Un réseau pharmaceutique **sur mesure**",
     badge: "Stock en temps réel · Pharmacies de garde 24h/7j",
     desc3: "Connecté aux pharmacies de votre ville et alentours. Accédez aux stocks réels, comparez les prix et trouvez des génériques disponibles.",
-    feat1Title: "Recherche de médicaments",
-    feat1Desc: "Vérifiez la disponibilité en temps réel dans les pharmacies proches",
     feat2Title: "Pharmacies de garde",
     feat2Desc: "Localisez les pharmacies ouvertes maintenant près de chez vous",
     feat3Title: "Gestion d'ordonnance",
     feat3Desc: "Scannez votre ordonnance et préparez votre commande à l'avance",
     feat4Title: "Vérifier mes médicaments",
-    feat4Desc: "Vérifiez les interactions entre plusieurs médicaments instantanément"
+    feat4Desc: "Vérifiez les interactions entre plusieurs médicaments instantanément",
+    feat5Title: "Rechercher un médicament",
+    feat5Desc: "Consultez les prix, indications et génériques au Maroc"
   },
   ar: {
     title1: "مساعد صيدلاني **سريع** و**مجاني**",
@@ -39,18 +40,18 @@ const t = {
     title3: "شبكة صيدلانية **مخصصة**",
     badge: "مخزون مباشر · صيدليات الحراسة 24/7",
     desc3: "متصل بصيدليات مدينتكم والنواحي. اطلع على المخزون الحقيقي، قارن الأسعار وجد الأدوية الجنيسة المتوفرة.",
-    feat1Title: "البحث عن الأدوية",
-    feat1Desc: "تحقق من توفر الأدوية في الوقت الفعلي في الصيدليات القريبة",
     feat2Title: "صيدليات الحراسة",
     feat2Desc: "حدد مواقع الصيدليات المفتوحة الآن بالقرب منك",
     feat3Title: "إدارة الوصفات الطبية",
     feat3Desc: "امسح وصفتك الطبية ضوئياً وحضر طلبيتك مسبقاً",
     feat4Title: "التحقق من أدويتي",
-    feat4Desc: "تحقق من التفاعلات بين أدوية متعددة على الفور"
+    feat4Desc: "تحقق من التفاعلات بين أدوية متعددة على الفور",
+    feat5Title: "البحث عن دواء",
+    feat5Desc: "اطلع على الأسعار، دواعي الاستعمال والأدوية الجنيسة في المغرب"
   }
 };
 
-export const LandingSections: React.FC<LandingSectionsProps> = ({ lang, onTriggerPharmacy, onTriggerScanner, onTriggerChecker }) => {
+export const LandingSections: React.FC<LandingSectionsProps> = ({ lang, onTriggerPharmacy, onTriggerScanner, onTriggerChecker, onTriggerSearch }) => {
   const text = t[lang];
   const isRtl = lang === 'ar';
 
@@ -136,15 +137,6 @@ export const LandingSections: React.FC<LandingSectionsProps> = ({ lang, onTrigge
 
         <div className="bg-white/80 backdrop-blur-md rounded-xl p-6 w-full max-w-xl shadow-sm border border-blue-50/50 text-start">
           <div className="flex flex-col gap-5">
-            <div className="flex items-start gap-4 pb-5 border-b border-blue-50">
-              <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0 text-blue-600">
-                <Pill className="w-4 h-4" />
-              </div>
-              <div className="text-start w-full">
-                <h4 className="font-semibold text-blue-900 text-sm md:text-base">{text.feat1Title}</h4>
-                <p className="text-blue-600/70 text-sm">{text.feat1Desc}</p>
-              </div>
-            </div>
             <motion.div 
               whileHover={{ scale: 1.02, x: 5 }}
               whileTap={{ scale: 0.98 }}
@@ -185,6 +177,20 @@ export const LandingSections: React.FC<LandingSectionsProps> = ({ lang, onTrigge
               <div className="text-start w-full">
                 <h4 className="font-semibold text-blue-900 text-sm md:text-base">{text.feat4Title}</h4>
                 <p className="text-blue-600/70 text-sm">{text.feat4Desc}</p>
+              </div>
+            </motion.div>
+            <motion.div 
+              whileHover={{ scale: 1.02, x: 5 }}
+              whileTap={{ scale: 0.98 }}
+              className="flex items-start gap-4 cursor-pointer hover:bg-blue-50/50 transition-colors rounded-xl -mx-2 px-2 py-2 border-t border-blue-50 pt-4"
+              onClick={onTriggerSearch}
+            >
+              <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0 text-blue-600">
+                <Search className="w-4 h-4" />
+              </div>
+              <div className="text-start w-full">
+                <h4 className="font-semibold text-blue-900 text-sm md:text-base">{text.feat5Title}</h4>
+                <p className="text-blue-600/70 text-sm">{text.feat5Desc}</p>
               </div>
             </motion.div>
           </div>
