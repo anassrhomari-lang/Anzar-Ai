@@ -1,0 +1,5 @@
+{
+  "name": "AnzarAI - Assistant Pharmaceutique",
+  "description": "Assistant pharmaceutique intelligent pour trouver des médicaments et des pharmacies de garde au Maroc.",
+  "requestFramePermissions": ["geolocation", "microphone", "camera"]
+}
