@@ -328,7 +328,7 @@ const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
           <div
             ref={ref}
             className={cn(
-              "rounded-3xl p-2 shadow-[0_8px_30px_rgba(0,0,0,0.08)] transition-all duration-300 relative z-0",
+              "rounded-2xl p-2 shadow-[0_8px_30px_rgba(0,0,0,0.08)] transition-all duration-300 relative z-0",
               className
             )}
             onDragOver={onDragOver}
@@ -443,9 +443,10 @@ interface PromptInputBoxProps {
   lang?: 'fr' | 'ar';
   onTriggerPharmacy?: () => void;
   onTriggerScanner?: () => void;
+  onTriggerChecker?: () => void;
 }
 export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref: React.Ref<HTMLDivElement>) => {
-  const { onSend = () => {}, isLoading = false, placeholder, className, lang = 'fr', onTriggerPharmacy, onTriggerScanner } = props;
+  const { onSend = () => {}, isLoading = false, placeholder, className, lang = 'fr', onTriggerPharmacy, onTriggerScanner, onTriggerChecker } = props;
   const [input, setInput] = React.useState("");
   const [files, setFiles] = React.useState<File[]>([]);
   const [filePreviews, setFilePreviews] = React.useState<{ [key: string]: string }>({});
@@ -563,10 +564,10 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
         isLoading={isLoading}
         onSubmit={handleSubmit}
         className={cn(
-          "w-full bg-white/80 backdrop-blur-md transition-all duration-300 ease-in-out",
+          "w-full bg-white/60 backdrop-blur-md transition-all duration-300 ease-in-out",
           isRecording 
-            ? "bg-white border border-blue-50" 
-            : "border border-blue-50/50 shadow-sm",
+            ? "bg-white border border-blue-50/30" 
+            : "border border-blue-50/30 shadow-sm",
           className
         )}
         disabled={isLoading || isRecording}
@@ -581,7 +582,7 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
               <div key={index} className="relative group">
                 {file.type.startsWith("image/") && filePreviews[file.name] && (
                   <div
-                    className="w-16 h-16 rounded-xl overflow-hidden cursor-pointer transition-all duration-300"
+                    className="w-16 h-16 rounded-lg overflow-hidden cursor-pointer transition-all duration-300"
                     onClick={() => openImageModal(filePreviews[file.name])}
                   >
                     <img
@@ -649,6 +650,16 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
               </button>
             </PromptInputAction>
 
+            <PromptInputAction tooltip={lang === 'fr' ? "Scanner mon ordonnance" : "مسح وصفتي الطبية"}>
+              <button
+                onClick={onTriggerScanner}
+                className="flex h-8 w-8 text-blue-400 cursor-pointer items-center justify-center rounded-full transition-colors hover:bg-blue-50 hover:text-blue-600"
+                disabled={isRecording}
+              >
+                <Scan className="h-5 w-5 transition-colors" />
+              </button>
+            </PromptInputAction>
+
             <PromptInputAction tooltip="Upload image">
               <button
                 onClick={() => uploadInputRef.current?.click()}
@@ -679,8 +690,8 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
                 className={cn(
                   "rounded-full transition-all flex items-center gap-1 px-2 md:px-2.5 py-1 border h-8 md:h-9",
                   showPharmacy
-                    ? "bg-blue-50 border-blue-200 text-blue-600"
-                    : "bg-white/40 border-blue-50/50 shadow-sm text-blue-300 hover:text-blue-500"
+                    ? "bg-blue-50/50 border-blue-100 text-blue-600"
+                    : "bg-white/20 border-blue-50/20 shadow-sm text-blue-200 hover:text-blue-400"
                 )}
               >
                 <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center flex-shrink-0">
@@ -715,8 +726,8 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
                 className={cn(
                   "rounded-full transition-all flex items-center gap-1 px-2 md:px-2.5 py-1 border h-8 md:h-9",
                   showLocation
-                    ? "bg-blue-50 border-blue-200 text-blue-600"
-                    : "bg-transparent border-transparent text-blue-300 hover:text-blue-500"
+                    ? "bg-blue-50/50 border-blue-100 text-blue-600"
+                    : "bg-transparent border-transparent text-blue-200 hover:text-blue-400"
                 )}
               >
                 <div className="w-4 h-4 md:w-5 md:h-5 flex items-center justify-center flex-shrink-0">

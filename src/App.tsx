@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useRef, useEffect } from "react";
-import { PanelLeft, X, User, Bot, Home, MapPin, Navigation, Phone, Clock, ExternalLink, Loader2, Store, MessageSquare, Plus, Trash2, History } from "lucide-react";
+import { PanelLeft, X, User, Bot, Home, MapPin, Navigation, Phone, Clock, ExternalLink, Loader2, Store, MessageSquare, Plus, Trash2, History, Activity, Check } from "lucide-react";
 import { PromptInputBox } from "./components/PromptInputBox";
 import { GoogleGenAI } from "@google/genai";
 import { PlaceCard } from "./components/PlaceCard";
@@ -54,6 +54,73 @@ export default function App() {
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [manualCity, setManualCity] = useState("");
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [isCheckerOpen, setIsCheckerOpen] = useState(false);
+  const [checkerInput, setCheckerInput] = useState("");
+  const [checkerResult, setCheckerResult] = useState<{ status: 'green' | 'yellow' | 'red', text: string } | null>(null);
+  const [isChecking, setIsChecking] = useState(false);
+
+  const checkInteractions = async () => {
+    if (!checkerInput.trim()) return;
+    setIsChecking(true);
+    setCheckerResult(null);
+    
+    const meds = checkerInput.split(',').map(m => m.trim()).filter(m => m.length > 0);
+    if (meds.length < 2) {
+      setCheckerResult({ 
+        status: 'yellow', 
+        text: lang === 'fr' ? "Veuillez entrer au moins deux médicaments." : "يرجى إدخال دواءين على الأقل." 
+      });
+      setIsChecking(false);
+      return;
+    }
+
+    try {
+      // OpenFDA search for adverse events involving these drugs
+      // We'll search for reports where both drugs are mentioned as suspect
+      const query = meds.map(m => `patient.drug.medicinalproduct:"${m}"`).join(' AND ');
+      const url = `https://api.fda.gov/drug/event.json?search=${encodeURIComponent(query)}&limit=1`;
+      
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data.results && data.results.length > 0) {
+        // If we find co-reported events, we flag it. 
+        // This is a simplified logic as requested.
+        setCheckerResult({
+          status: 'red',
+          text: lang === 'fr' 
+            ? "🔴 Danger : Des interactions ont été signalées pour cette combinaison. Évitez de les combiner sans avis médical." 
+            : "🔴 خطر: تم الإبلاغ عن تفاعلات لهذه المجموعة. تجنب الجمع بينها دون استشارة طبية."
+        });
+      } else {
+        // Fallback to AI for a more nuanced check if OpenFDA is inconclusive or no exact matches
+        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+        const aiPrompt = `Vérifie les interactions médicamenteuses entre : ${meds.join(', ')}. 
+        Réponds UNIQUEMENT au format JSON : {"status": "green" | "yellow" | "red", "text": "explication courte"}.
+        Utilise les codes : 🟢 pour green, 🟡 pour yellow, 🔴 pour red.`;
+        
+        const aiResponse = await ai.models.generateContent({
+          model: "gemini-3-flash-preview",
+          contents: aiPrompt,
+          config: { responseMimeType: "application/json" }
+        });
+        
+        const result = JSON.parse(aiResponse.text || "{}");
+        setCheckerResult({
+          status: result.status || 'green',
+          text: result.text || (lang === 'fr' ? "🟢 Pas d'interaction majeure connue." : "🟢 لا توجد تفاعلات رئيسية معروفة.")
+        });
+      }
+    } catch (error) {
+      console.error("Interaction check error:", error);
+      setCheckerResult({
+        status: 'yellow',
+        text: lang === 'fr' ? "Erreur lors de la vérification. Consultez un pharmacien." : "خطأ أثناء التحقق. استشر الصيدلاني."
+      });
+    } finally {
+      setIsChecking(false);
+    }
+  };
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   
@@ -246,7 +313,7 @@ export default function App() {
       const prompt = `Trouve les pharmacies ${type === 'garde' ? 'de garde' : 'ouvertes'} dans un rayon STRICT de 10km maximum autour de ma position (lat: ${lat}, lng: ${lng}). Ne cherche jamais au-delà de cette distance.`;
       
       const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-3.1-pro-preview",
         contents: prompt,
         config: {
           tools: [
@@ -303,7 +370,7 @@ export default function App() {
         ${JSON.stringify(sourceMessages.map(m => ({ role: m.role, text: m.text })))}`;
 
         const response = await ai.models.generateContent({
-          model: "gemini-3-flash-preview",
+          model: "gemini-3.1-pro-preview",
           contents: prompt,
           config: {
             responseMimeType: "application/json",
@@ -369,8 +436,8 @@ export default function App() {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       
       const systemInstruction = lang === 'fr' 
-        ? "Tu es Anzar, un assistant pharmaceutique expert pour le Maroc. Réponds toujours en français de manière directe, concise et professionnelle. Mets en gras les informations clés (médicaments, dosages, pharmacies, interactions). Utilise les outils de recherche Google Maps pour trouver des lieux réels UNIQUEMENT dans la ville actuelle de l'utilisateur. Ne propose jamais de pharmacies situées dans une autre ville, même si elles sont proches."
-        : "أنت أنزار، مساعد صيدلاني خبير للمغرب. أجب دائمًا باللغة العربية بشكل مباشر وموجز ومهني. ضع المعلومات الأساسية بخط عريض (الأدوية، الجرعات، الصيدليات، التفاعلات). استخدم أدوات بحث خرائط جوجل للعثور على أماكن حقيقية فقط في مدينة المستخدم الحالية. لا تقترح أبدًا صيدليات تقع في مدينة أخرى، حتى لو كانت قريبة.";
+        ? "Tu es Anzar, un assistant médical marocain expert. Tu réponds en français ou en Darija selon la langue de l'utilisateur. Tes conseils doivent être clairs, simples et responsables. Rappelle TOUJOURS de consulter un médecin pour les cas sérieux. Si l'utilisateur décrit des symptômes, termine TOUJOURS ta réponse par l'un de ces niveaux de gravité :\n\n🟢 Gérable à domicile — voici comment\n🟡 Consulter un médecin dans les 24-48h\n🔴 Urgences maintenant\n\nUtilise les outils de recherche Google Maps pour trouver des lieux réels UNIQUEMENT dans la ville actuelle de l'utilisateur."
+        : "أنت أنزار، مساعد طبي مغربي خبير. تجيب باللغة الفرنسية أو الدارجة حسب لغة المستخدم. يجب أن تكون نصائحك واضحة وبسيطة ومسؤولة. ذكر دائمًا باستشارة الطبيب في الحالات الخطيرة. إذا وصف المستخدم أعراضًا، فقم دائمًا بإنهاء إجابتك بأحد مستويات الخطورة التالية:\n\n🟢 يمكن إدارتها في المنزل - إليك الطريقة\n🟡 استشر الطبيب خلال 24-48 ساعة\n🔴 الطوارئ الآن\n\nاستخدم أدوات بحث خرائط جوجل للعثور على أماكن حقيقية فقط في مدينة المستخدم الحالية.";
 
       const config: any = {
         systemInstruction,
@@ -412,7 +479,7 @@ export default function App() {
       }
 
       const responseStream = await ai.models.generateContentStream({
-        model: "gemini-3-flash-preview",
+        model: "gemini-3.1-pro-preview",
         contents: query,
         config,
       });
@@ -478,7 +545,7 @@ export default function App() {
       lang={lang}
     >
       {/* Background Gradient */}
-      <div className="absolute inset-0 z-0 pointer-events-none bg-[#F8FBFF]" />
+      <div className="absolute inset-0 z-0 pointer-events-none bg-[#FBFDFF]" />
       <div className="absolute bottom-0 left-0 right-0 w-full overflow-hidden z-0 pointer-events-none animate-in fade-in slide-in-from-bottom-24 duration-1000 ease-out flex justify-center items-end h-[85vh] opacity-100">
         <svg 
           viewBox="0 0 2292 800" 
@@ -500,9 +567,9 @@ export default function App() {
               <feGaussianBlur stdDeviation="150" result="effect1_foregroundBlur"/>
             </filter>
             <radialGradient id="paint0_radial_5226_125" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1146 793) rotate(-90) scale(753 1106)">
-              <stop offset="0%" stopColor="#E6F3FF" stopOpacity="0.6" />
-              <stop offset="60%" stopColor="#F5FAFF" stopOpacity="0.3" />
-              <stop offset="100%" stopColor="#F8FBFF" stopOpacity="0" />
+              <stop offset="0%" stopColor="#F0F7FF" stopOpacity="0.4" />
+              <stop offset="60%" stopColor="#F9FBFF" stopOpacity="0.2" />
+              <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
             </radialGradient>
           </defs>
         </svg>
@@ -661,24 +728,24 @@ export default function App() {
 
                 <div className="flex flex-col gap-2.5 items-start">
                   <button 
-                    onClick={() => handleSend(lang === 'fr' ? "J'ai une fièvre, que me conseillez-vous ?" : "لدي حمى، بماذا تنصحني؟")}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-blue-200 hover:bg-blue-50 transition-all text-blue-800 text-xs bg-white/60 backdrop-blur-md shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0"
+                    onClick={() => setIsCheckerOpen(true)}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-blue-100 hover:bg-blue-50/50 transition-all text-blue-800 text-xs bg-white/40 backdrop-blur-md shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0"
                   >
                     <span className="font-medium">
-                      {lang === 'fr' ? "J'ai une fièvre" : "لدي حمى"}
+                      {lang === 'fr' ? "Vérifier mes médicaments" : "التحقق من أدويتي"}
                     </span>
                   </button>
                   <button 
-                    onClick={() => handleSend(lang === 'fr' ? "Trouver Amoxicilline 500mg en stock" : "البحث عن أموكسيسيلين 500 ملغ")}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-blue-200 hover:bg-blue-50 transition-all text-blue-800 text-xs bg-white/60 backdrop-blur-md shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0"
+                    onClick={() => handleSend(lang === 'fr' ? "Comprendre mon ordonnance" : "فهم وصفتي الطبية")}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-blue-100 hover:bg-blue-50/50 transition-all text-blue-800 text-xs bg-white/40 backdrop-blur-md shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0"
                   >
                     <span className="font-medium">
-                      {lang === 'fr' ? "Trouver Amoxicilline 500mg en stock" : "البحث عن أموكسيسيلين 500 ملغ"}
+                      {lang === 'fr' ? "Comprendre mon ordonnance" : "فهم وصفتي الطبية"}
                     </span>
                   </button>
                   <button 
                     onClick={() => handleSend(lang === 'fr' ? "Pharmacie de garde ouverte maintenant" : "صيدلية حراسة مفتوحة الآن")}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-blue-200 bg-white hover:bg-blue-50 transition-all text-blue-800 text-xs shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0"
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-blue-100 bg-white/40 hover:bg-blue-50/50 transition-all text-blue-800 text-xs shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0"
                   >
                     <span className="font-medium">
                       {lang === 'fr' ? "Pharmacie de garde ouverte maintenant" : "صيدلية حراسة مفتوحة الآن"}
@@ -686,7 +753,7 @@ export default function App() {
                   </button>
                   <button 
                     onClick={() => handleSend(lang === 'fr' ? "Interactions médicamenteuses de mon ordonnance" : "التفاعلات الدوائية لوصفتي الطبية")}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-blue-200 hover:bg-blue-50 transition-all text-blue-800 text-xs bg-white/60 backdrop-blur-md shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0"
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-blue-100 hover:bg-blue-50/50 transition-all text-blue-800 text-xs bg-white/40 backdrop-blur-md shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0"
                   >
                     <span className="font-medium">
                       {lang === 'fr' ? "Interactions médicamenteuses de mon ordonnance" : "التفاعلات الدوائية لوصفتي الطبية"}
@@ -699,6 +766,7 @@ export default function App() {
                 lang={lang} 
                 onTriggerPharmacy={triggerPharmacyFinder} 
                 onTriggerScanner={() => setIsScannerOpen(true)}
+                onTriggerChecker={() => setIsCheckerOpen(true)}
               />
             </div>
           ) : (
@@ -708,7 +776,7 @@ export default function App() {
                   <div 
                     className={`max-w-[85%] ${
                       msg.role === "user" 
-                        ? "bg-blue-600 text-white rounded-2xl rounded-te-sm px-4 py-3 shadow-md" 
+                        ? "bg-blue-600 text-white rounded-xl rounded-te-sm px-4 py-3 shadow-md" 
                         : "text-blue-900 py-2"
                     }`}
                   >
@@ -725,7 +793,7 @@ export default function App() {
                         <motion.div 
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className="bg-blue-50/50 border border-blue-100 rounded-2xl p-4 flex flex-col items-center gap-3"
+                          className="bg-blue-50/50 border border-blue-100 rounded-xl p-4 flex flex-col items-center gap-3"
                         >
                           <p className="text-sm text-blue-800 font-medium text-center">
                             {lang === 'fr' 
@@ -758,7 +826,7 @@ export default function App() {
               ))}
               {isLoading && (
                 <div className="flex items-start">
-                  <div className="bg-white/80 backdrop-blur-sm rounded-2xl rounded-ss-sm px-4 py-3 border border-gray-100 shadow-sm flex gap-1 items-center">
+                  <div className="bg-white/80 backdrop-blur-sm rounded-xl rounded-ss-sm px-4 py-3 border border-gray-100 shadow-sm flex gap-1 items-center">
                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
@@ -771,7 +839,7 @@ export default function App() {
         </main>
 
         {/* Input Area */}
-        <div className="relative z-20 p-4 w-full bg-gradient-to-t from-[#F8FBFF] via-[#F8FBFF] to-transparent pt-4 shrink-0">
+        <div className="relative z-20 p-4 w-full bg-gradient-to-t from-[#FBFDFF] via-[#FBFDFF] to-transparent pt-4 shrink-0">
           <div className="max-w-2xl mx-auto relative">
             {/* Pharmacy Bottom Sheet */}
             <AnimatePresence>
@@ -781,7 +849,7 @@ export default function App() {
                   animate={{ y: 0 }}
                   exit={{ y: "100%" }}
                   transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                  className="absolute bottom-full left-0 right-0 mb-4 bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden z-30 max-h-[60vh] flex flex-col"
+                  className="absolute bottom-full left-0 right-0 mb-4 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-30 max-h-[60vh] flex flex-col"
                 >
                   <div className="p-4 border-b border-gray-50 flex items-center justify-between bg-gray-50/50">
                     <div className="flex items-center gap-2">
@@ -807,7 +875,7 @@ export default function App() {
                       </div>
                     ) : (
                       pharmacies.map((pharmacy) => (
-                        <div key={pharmacy.id} className="p-4 rounded-2xl border border-gray-100 bg-white hover:border-gray-200 transition-all shadow-sm hover:shadow-md">
+                        <div key={pharmacy.id} className="p-4 rounded-xl border border-gray-100 bg-white hover:border-gray-200 transition-all shadow-sm hover:shadow-md">
                           <div className="flex justify-between items-start mb-2">
                             <div className="flex items-center gap-2">
                               <Store className="w-5 h-5 text-gray-700" />
@@ -874,7 +942,7 @@ export default function App() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 10 }}
-                  className="absolute bottom-full left-0 right-0 mb-4 p-4 bg-white/90 backdrop-blur-md rounded-2xl border border-blue-200 flex flex-col gap-2 z-40 shadow-2xl"
+                  className="absolute bottom-full left-0 right-0 mb-4 p-4 bg-white/90 backdrop-blur-md rounded-xl border border-blue-200 flex flex-col gap-2 z-40 shadow-2xl"
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-blue-800">{locationError}</span>
@@ -940,6 +1008,7 @@ export default function App() {
               lang={lang}
               onTriggerPharmacy={triggerPharmacyFinder}
               onTriggerScanner={() => setIsScannerOpen(true)}
+              onTriggerChecker={() => setIsCheckerOpen(true)}
             />
           </div>
         </div>
@@ -951,6 +1020,90 @@ export default function App() {
             onClose={() => setIsScannerOpen(false)}
             onScanComplete={handleScanComplete}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Interaction Checker Modal */}
+      <AnimatePresence>
+        {isCheckerOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl shadow-2xl border border-blue-100 w-full max-w-md overflow-hidden flex flex-col"
+            >
+              <div className="p-4 border-b border-blue-50 flex items-center justify-between bg-blue-50/30">
+                <div className="flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-blue-600" />
+                  <h3 className="font-bold text-blue-900">
+                    {lang === 'fr' ? "Vérifier mes médicaments" : "التحقق من الأدوية"}
+                  </h3>
+                </div>
+                <button 
+                  onClick={() => {
+                    setIsCheckerOpen(false);
+                    setCheckerResult(null);
+                    setCheckerInput("");
+                  }}
+                  className="p-1.5 hover:bg-blue-100 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5 text-blue-400" />
+                </button>
+              </div>
+              
+              <div className="p-6 flex flex-col gap-4">
+                <p className="text-xs text-blue-700 leading-relaxed">
+                  {lang === 'fr' 
+                    ? "Entrez les noms des médicaments séparés par une virgule pour vérifier les interactions connues." 
+                    : "أدخل أسماء الأدوية مفصولة بفاصلة للتحقق من التفاعلات المعروفة."}
+                </p>
+                
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={checkerInput}
+                    onChange={(e) => setCheckerInput(e.target.value)}
+                    placeholder={lang === 'fr' ? "Ex: Aspirine, Ibuprofène" : "مثال: أسبرين، إيبوبروفين"}
+                    className="w-full px-4 py-3 rounded-xl border border-blue-100 focus:border-blue-300 focus:ring-0 text-sm placeholder:text-blue-300"
+                  />
+                </div>
+
+                <button
+                  onClick={checkInteractions}
+                  disabled={isChecking || !checkerInput.trim()}
+                  className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold text-sm shadow-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+                >
+                  {isChecking ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Check className="w-4 h-4" />
+                  )}
+                  {lang === 'fr' ? "Vérifier" : "تحقق"}
+                </button>
+
+                {checkerResult && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`p-4 rounded-xl border ${
+                      checkerResult.status === 'red' ? 'bg-red-50 border-red-100 text-red-800' :
+                      checkerResult.status === 'yellow' ? 'bg-yellow-50 border-yellow-100 text-yellow-800' :
+                      'bg-green-50 border-green-100 text-green-800'
+                    } text-xs font-medium leading-relaxed`}
+                  >
+                    {checkerResult.text}
+                  </motion.div>
+                )}
+              </div>
+              
+              <div className="p-4 bg-gray-50 border-t border-gray-100 text-[10px] text-gray-400 italic text-center">
+                {lang === 'fr' 
+                  ? "Source : OpenFDA & IA. Ne remplace pas l'avis d'un professionnel." 
+                  : "المصدر: OpenFDA والذكاء الاصطناعي. لا يغني عن رأي المختص."}
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

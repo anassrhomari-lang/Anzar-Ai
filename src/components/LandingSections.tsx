@@ -6,6 +6,7 @@ interface LandingSectionsProps {
   lang: 'fr' | 'ar';
   onTriggerPharmacy?: () => void;
   onTriggerScanner?: () => void;
+  onTriggerChecker?: () => void;
 }
 
 const t = {
@@ -24,7 +25,9 @@ const t = {
     feat2Title: "Pharmacies de garde",
     feat2Desc: "Localisez les pharmacies ouvertes maintenant près de chez vous",
     feat3Title: "Gestion d'ordonnance",
-    feat3Desc: "Scannez votre ordonnance et préparez votre commande à l'avance"
+    feat3Desc: "Scannez votre ordonnance et préparez votre commande à l'avance",
+    feat4Title: "Vérifier mes médicaments",
+    feat4Desc: "Vérifiez les interactions entre plusieurs médicaments instantanément"
   },
   ar: {
     title1: "مساعد صيدلاني **سريع** و**مجاني**",
@@ -41,11 +44,13 @@ const t = {
     feat2Title: "صيدليات الحراسة",
     feat2Desc: "حدد مواقع الصيدليات المفتوحة الآن بالقرب منك",
     feat3Title: "إدارة الوصفات الطبية",
-    feat3Desc: "امسح وصفتك الطبية ضوئياً وحضر طلبيتك مسبقاً"
+    feat3Desc: "امسح وصفتك الطبية ضوئياً وحضر طلبيتك مسبقاً",
+    feat4Title: "التحقق من أدويتي",
+    feat4Desc: "تحقق من التفاعلات بين أدوية متعددة على الفور"
   }
 };
 
-export const LandingSections: React.FC<LandingSectionsProps> = ({ lang, onTriggerPharmacy, onTriggerScanner }) => {
+export const LandingSections: React.FC<LandingSectionsProps> = ({ lang, onTriggerPharmacy, onTriggerScanner, onTriggerChecker }) => {
   const text = t[lang];
   const isRtl = lang === 'ar';
 
@@ -60,40 +65,11 @@ export const LandingSections: React.FC<LandingSectionsProps> = ({ lang, onTrigge
   };
 
   return (
-    <div className={`flex flex-col items-center w-full max-w-3xl mx-auto mt-20 pb-12 gap-20 text-center px-4`} dir={isRtl ? 'rtl' : 'ltr'}>
+    <div className={`flex flex-col items-center w-full max-w-3xl mx-auto mt-32 md:mt-48 pb-12 gap-20 text-center px-4`} dir={isRtl ? 'rtl' : 'ltr'}>
       
       {/* Section 1 */}
-      <section className="flex flex-col items-center w-full">
-        {/* Branding - Moved to top as requested */}
-        <div className="relative w-full max-w-2xl mx-auto py-6 flex flex-col items-center justify-center">
-          <div className="flex flex-col items-center gap-1">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="relative w-16 h-16 flex items-center justify-center">
-                <div className="absolute inset-0 bg-red-500 rounded-full blur-2xl opacity-20 animate-pulse" />
-                <Heart className="w-14 h-14 text-red-500 fill-red-500 relative z-10 drop-shadow-[0_0_15px_rgba(239,68,68,0.6)]" />
-              </div>
-              <h1 className="text-4xl md:text-6xl font-medium tracking-tight flex items-start text-blue-900">
-                Anzar<span className="text-blue-600 text-lg md:text-2xl font-bold ml-0.5 mt-1">AI</span>
-              </h1>
-            </div>
-            
-            <motion.div 
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.98 }}
-              className="mt-6 px-4 md:px-6 py-1.5 md:py-2 bg-white/80 backdrop-blur-md shadow-sm border border-blue-50/50 rounded-full flex items-center gap-2 transform transition-transform cursor-default"
-            >
-              <Diamond className="w-3.5 h-3.5 text-blue-500 fill-blue-500" />
-              <span className="text-xs font-bold tracking-[0.25em] uppercase text-blue-600">
-                {lang === 'fr' ? 'Portail Patient' : 'بوابة المريض'}
-              </span>
-            </motion.div>
-          </div>
-          
-          {/* Subtle decorative background elements */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl -z-10"></div>
-        </div>
-
-        <h2 className="text-2xl md:text-3xl font-serif text-blue-900 mb-4 leading-tight mt-8">
+      <section className="flex flex-col items-center w-full pt-20 md:pt-32">
+        <h2 className="text-2xl md:text-3xl font-serif text-blue-900 mb-4 leading-tight">
           {renderText(text.title1)}
         </h2>
         <p className="text-blue-700 text-sm md:text-base max-w-xl leading-relaxed mb-12">
@@ -110,12 +86,12 @@ export const LandingSections: React.FC<LandingSectionsProps> = ({ lang, onTrigge
           {renderText(text.desc2)}
         </p>
 
-        <div className="bg-white/50 backdrop-blur-md border border-blue-50/50 rounded-3xl p-6 md:p-8 w-full max-w-2xl shadow-inner relative">
+        <div className="bg-white/50 backdrop-blur-md border border-blue-50/50 rounded-2xl p-6 md:p-8 w-full max-w-2xl shadow-inner relative">
           <div className="flex flex-col gap-4">
-            <div className={`bg-blue-50/30 border border-blue-50/50 rounded-2xl p-4 shadow-sm max-w-[85%] rounded-es-sm self-start text-start`}>
+            <div className={`bg-blue-50/30 border border-blue-50/50 rounded-xl p-4 shadow-sm max-w-[85%] rounded-es-sm self-start text-start`}>
               <p className="text-blue-900 font-medium text-sm">{renderText(text.chat1)}</p>
             </div>
-            <div className={`bg-white/80 border border-blue-50/50 rounded-2xl p-4 shadow-sm max-w-[85%] relative rounded-ee-sm self-end text-start`}>
+            <div className={`bg-white/80 border border-blue-50/50 rounded-xl p-4 shadow-sm max-w-[85%] relative rounded-ee-sm self-end text-start`}>
               <p className="text-blue-900 font-medium text-sm">{renderText(text.chat2)}</p>
               <div className={`absolute bottom-0 w-8 h-8 rounded-full overflow-hidden border-2 border-blue-100 shadow-sm ${isRtl ? '-right-10' : '-left-10'}`}>
                 <img src="https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?q=80&w=100&auto=format&fit=crop" alt="User" className="w-full h-full object-cover"/>
@@ -158,7 +134,7 @@ export const LandingSections: React.FC<LandingSectionsProps> = ({ lang, onTrigge
           {renderText(text.desc3)}
         </p>
 
-        <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 w-full max-w-xl shadow-sm border border-blue-50/50 text-start">
+        <div className="bg-white/80 backdrop-blur-md rounded-xl p-6 w-full max-w-xl shadow-sm border border-blue-50/50 text-start">
           <div className="flex flex-col gap-5">
             <div className="flex items-start gap-4 pb-5 border-b border-blue-50">
               <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0 text-blue-600">
@@ -195,6 +171,20 @@ export const LandingSections: React.FC<LandingSectionsProps> = ({ lang, onTrigge
               <div className="text-start w-full">
                 <h4 className="font-semibold text-blue-900 text-sm md:text-base">{text.feat3Title}</h4>
                 <p className="text-blue-600/70 text-sm">{text.feat3Desc}</p>
+              </div>
+            </motion.div>
+            <motion.div 
+              whileHover={{ scale: 1.02, x: 5 }}
+              whileTap={{ scale: 0.98 }}
+              className="flex items-start gap-4 cursor-pointer hover:bg-blue-50/50 transition-colors rounded-xl -mx-2 px-2 py-2 border-t border-blue-50 pt-4"
+              onClick={onTriggerChecker}
+            >
+              <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0 text-blue-600">
+                <Activity className="w-4 h-4" />
+              </div>
+              <div className="text-start w-full">
+                <h4 className="font-semibold text-blue-900 text-sm md:text-base">{text.feat4Title}</h4>
+                <p className="text-blue-600/70 text-sm">{text.feat4Desc}</p>
               </div>
             </motion.div>
           </div>

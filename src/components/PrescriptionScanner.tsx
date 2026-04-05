@@ -65,8 +65,8 @@ export const PrescriptionScanner: React.FC<PrescriptionScannerProps> = ({ onClos
       try {
         const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
         const prompt = lang === 'fr' 
-          ? "Analyse cette ordonnance médicale. Extrais les noms des médicaments, les dosages et les instructions de prise. Réponds en français de manière structurée."
-          : "حلل هذه الوصفة الطبية. استخرج أسماء الأدوية والجرعات وتعليمات الاستخدام. أجب باللغة العربية بشكل منظم.";
+          ? "Analyse cette ordonnance médicale. Pour chaque médicament détecté, affiche les informations suivantes en français :\n- Nom commercial\n- Nom générique\n- Posologie (dosage et fréquence)\n- Effets secondaires fréquents\n- Interactions courantes\nRéponds de manière claire et structurée pour un patient."
+          : "حلل هذه الوصفة الطبية. لكل دواء يتم اكتشافه، اعرض المعلومات التالية باللغة العربية:\n- الاسم التجاري\n- الاسم العلمي (الجنيس)\n- الجرعة (الكمية والتكرار)\n- الآثار الجانبية الشائعة\n- التفاعلات الشائعة\nأجب بطريقة واضحة ومنظمة للمريض.";
 
         const response = await ai.models.generateContent({
           model: "gemini-3-flash-preview",
