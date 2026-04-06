@@ -400,7 +400,9 @@ export default function App() {
 
     try {
       // OpenFDA search for adverse events involving these drugs
-      const query = meds.map(m => `patient.drug.medicinalproduct:"${m}"`).join(' AND ');
+      // Use a more robust query format for OpenFDA
+      const queryParts = meds.map(m => `patient.drug.medicinalproduct:"${m.replace(/[^a-zA-Z0-9 ]/g, "")}"`);
+      const query = queryParts.join(' AND ');
       const url = `https://api.fda.gov/drug/event.json?search=${encodeURIComponent(query)}&limit=1`;
       
       const response = await fetch(url);
@@ -1162,13 +1164,35 @@ export default function App() {
 
       const modelToUse = "gemini-3-flash-preview";
 
-      if (responseMimeType === "application/json") {
-        const response = await ai.models.generateContent({
-          model: modelToUse,
-          contents,
-          config,
-        });
+      const callGemini = async (retryCount = 0): Promise<any> => {
+        try {
+          if (responseMimeType === "application/json") {
+            return await ai.models.generateContent({
+              model: modelToUse,
+              contents,
+              config,
+            });
+          } else {
+            return await ai.models.generateContentStream({
+              model: modelToUse,
+              contents,
+              config,
+            });
+          }
+        } catch (error: any) {
+          console.error(`Gemini call error (attempt ${retryCount + 1}):`, error);
+          if ((error?.status === 429 || error?.code === 429 || error?.status === 503 || error?.code === 503 || error?.status >= 500) && retryCount < 3) {
+            const delay = Math.pow(2, retryCount) * 1000 + Math.random() * 1000;
+            console.log(`Retrying Gemini call in ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            return callGemini(retryCount + 1);
+          }
+          throw error;
+        }
+      };
 
+      if (responseMimeType === "application/json") {
+        const response = await callGemini();
         const textResponse = response.text || "";
         let parsedData = extractJson(textResponse);
 
@@ -1184,11 +1208,7 @@ export default function App() {
         setMessages((prev) => [...prev, modelMessage]);
       } else {
         // Streaming for text responses
-        const streamResponse = await ai.models.generateContentStream({
-          model: modelToUse,
-          contents,
-          config,
-        });
+        const streamResponse = await callGemini();
 
         let fullText = "";
         const streamingMessage: Message = { role: "model", text: "", streaming: true };
@@ -1490,7 +1510,7 @@ export default function App() {
 
       {/* Main Content */}
       <div className="relative z-10 flex-1 flex flex-col overflow-hidden medical-bg">
-        <main className="flex-1 overflow-y-auto pt-4 pb-4 w-full">
+        <main className="flex-1 overflow-y-auto pt-4 pb-40 w-full scroll-smooth">
           <AnimatePresence mode="wait">
             {messages.length === 0 ? (
               <motion.div 
@@ -1709,7 +1729,7 @@ export default function App() {
         </main>
 
         {/* Input Area */}
-        <div className="relative z-20 p-4 w-full bg-gradient-to-t from-[#FBFDFF] via-[#FBFDFF] to-transparent pt-4 shrink-0">
+        <div className="absolute bottom-0 left-0 right-0 z-20 p-4 md:p-6 w-full bg-white/30 backdrop-blur-xl border-t border-white/20 shadow-[0_-20px_50px_-10px_rgba(0,0,0,0.08)]">
           <div className="max-w-2xl mx-auto relative">
             {/* Pharmacy Bottom Sheet */}
             <AnimatePresence>
