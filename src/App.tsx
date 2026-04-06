@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useRef, useEffect, useCallback, Suspense, lazy } from "react";
-import { PanelLeft, X, User, Bot, Home, MapPin, Navigation, Phone, Clock, ExternalLink, Loader2, Store, MessageSquare, Plus, Trash2, History, Activity, Check, AlertCircle } from "lucide-react";
+import { PanelLeft, X, User, Bot, Home, MapPin, Navigation, Phone, Clock, ExternalLink, Loader2, Store, MessageSquare, Plus, Trash2, History, Activity, Check, AlertCircle, Camera, Mic, StopCircle } from "lucide-react";
 import { PromptInputBox } from "./components/PromptInputBox";
 import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import { PlaceCard } from "./components/PlaceCard";
@@ -252,6 +252,11 @@ export default function App() {
   const [checkerInput, setCheckerInput] = useState("");
   const [checkerResult, setCheckerResult] = useState<{ status: 'green' | 'yellow' | 'red', text: string } | null>(null);
   const [isChecking, setIsChecking] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isProcessingMedia, setIsProcessingMedia] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const photoInputRef = useRef<HTMLInputElement>(null);
   const [consentChecked, setConsentChecked] = useState(false);
   const [nearbyCount, setNearbyCount] = useState<number | null>(null);
 
@@ -280,12 +285,110 @@ export default function App() {
     return false;
   };
 
+  const handlePhotoCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsProcessingMedia(true);
+    try {
+      const reader = new FileReader();
+      const base64Data = await new Promise<string>((resolve) => {
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.split(',')[1]);
+        };
+        reader.readAsDataURL(file);
+      });
+
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const prompt = "Analyse cette photo de médicaments et liste UNIQUEMENT les noms des médicaments séparés par une virgule. Si aucun médicament n'est visible, réponds 'null'.";
+      
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: [{ role: "user", parts: [{ text: prompt }, { inlineData: { mimeType: file.type, data: base64Data } }] }],
+      });
+
+      const meds = response.text?.trim();
+      if (meds && meds !== 'null') {
+        setCheckerInput(meds);
+      }
+    } catch (error) {
+      console.error("Photo processing error:", error);
+    } finally {
+      setIsProcessingMedia(false);
+    }
+  };
+
+  const processAudio = async (blob: Blob) => {
+    setIsProcessingMedia(true);
+    try {
+      const reader = new FileReader();
+      const base64Data = await new Promise<string>((resolve) => {
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.split(',')[1]);
+        };
+        reader.readAsDataURL(blob);
+      });
+
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const prompt = "Écoute cet audio et liste UNIQUEMENT les noms des médicaments mentionnés, séparés par une virgule. Si aucun médicament n'est mentionné, réponds 'null'.";
+      
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: [{ role: "user", parts: [{ text: prompt }, { inlineData: { mimeType: 'audio/webm', data: base64Data } }] }],
+      });
+
+      const meds = response.text?.trim();
+      if (meds && meds !== 'null') {
+        setCheckerInput(meds);
+      }
+    } catch (error) {
+      console.error("Audio processing error:", error);
+    } finally {
+      setIsProcessingMedia(false);
+    }
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          audioChunksRef.current.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        await processAudio(audioBlob);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (error) {
+      console.error("Error starting recording:", error);
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
   const checkInteractions = useCallback(async () => {
     if (!checkerInput.trim()) return;
     setIsChecking(true);
     setCheckerResult(null);
     
-    const meds = checkerInput.split(',').map(m => m.trim()).filter(m => m.length > 0);
+    const meds = checkerInput.split(/[,\+]/).map(m => m.trim()).filter(m => m.length > 0);
     if (meds.length < 2) {
       setCheckerResult({ 
         status: 'yellow', 
@@ -772,6 +875,35 @@ export default function App() {
     translateMessages();
   }, [lang, messages.length, isLoading]);
 
+  const extractJson = (text: string) => {
+    try {
+      const start = text.indexOf('{');
+      const end = text.lastIndexOf('}');
+      const startArr = text.indexOf('[');
+      const endArr = text.lastIndexOf(']');
+      
+      let finalStart = -1;
+      let finalEnd = -1;
+      
+      if (start !== -1 && (startArr === -1 || start < startArr)) {
+        finalStart = start;
+        finalEnd = end;
+      } else if (startArr !== -1) {
+        finalStart = startArr;
+        finalEnd = endArr;
+      }
+      
+      if (finalStart !== -1 && finalEnd !== -1) {
+        const jsonStr = text.substring(finalStart, finalEnd + 1);
+        return JSON.parse(jsonStr);
+      }
+      return JSON.parse(text);
+    } catch (e) {
+      console.error("JSON extraction error:", e);
+      return null;
+    }
+  };
+
   const handleSend = async (text: string, files?: File[], audioBlob?: Blob) => {
     if (!text.trim() && (!files || files.length === 0) && !audioBlob) return;
 
@@ -930,8 +1062,8 @@ export default function App() {
         contents.push({ role: "user", parts });
       } else {
         // Check for drug interactions
-        const drugKeywords = ["+", " et ", " avec ", "mélange", "interaction"];
-        const isInteractionCheck = drugKeywords.some(k => query.includes(k)) && query.split(/[+ ]/).length > 2;
+        const drugKeywords = ["+", " et ", " avec ", "mélange", "interaction", " و ", " مع ", "تفاعل", "خلط"];
+        const isInteractionCheck = drugKeywords.some(k => query.toLowerCase().includes(k)) && query.split(/[+ ]/).length >= 2;
 
         if (isInteractionCheck) {
           currentPrompt = `Tu es un pharmacien expert. Analyse les interactions entre ces médicaments mentionnés dans: "${query}". Réponds UNIQUEMENT en JSON. Langue de réponse: ${detectedLang}.
@@ -956,13 +1088,20 @@ export default function App() {
           {
             "question_suivi": "votre question ici ou null si terminé",
             "triage_provisoire": "verte | orange | rouge | null",
-            "continuer": true | false,
+            "continuer": true,
+            "verdict": null
+          }
+          OU si le triage est terminé (continuer: false) :
+          {
+            "question_suivi": null,
+            "triage_provisoire": "verte | orange | rouge",
+            "continuer": false,
             "verdict": {
               "niveau": "rouge | orange | verte",
               "message": "...",
               "action": "...",
               "specialiste": "..."
-            } (seulement si continuer est false)
+            }
           }
           Message utilisateur: ${query}`;
           responseMimeType = "application/json";
@@ -970,9 +1109,13 @@ export default function App() {
         contents.push({ role: "user", parts: [{ text: currentPrompt }] });
       }
 
-      const systemInstruction = lang === 'fr' 
-        ? "Tu es Anzar, un assistant médical marocain expert. Tu réponds en français, en Arabe ou en Darija selon la langue de l'utilisateur. Tes conseils doivent être clairs, simples et responsables. Rappelle TOUJOURS de consulter un médecin pour les cas sérieux. Si l'utilisateur décrit des symptômes, termine TOUJOURS ta réponse par l'un de ces niveaux de gravité :\n\n🟢 Gérable à domicile — voici comment\n🟡 Consulter un médecin dans les 24-48h\n🔴 Urgences maintenant\n\nUtilise les outils de recherche Google Maps pour trouver des lieux réels UNIQUEMENT dans la ville actuelle de l'utilisateur. Ne stocke aucune donnée personnelle."
-        : "أنت أنزار، مساعد طبي مغربي خبير. تجيب باللغة الفرنسية أو العربية أو الدارجة حسب لغة المستخدم. يجب أن تكون نصائحك واضحة وبسيطة ومسؤولة. ذكر دائمًا باستشارة الطبيب في الحالات الخطيرة. إذا وصف المستخدم أعراضًا، فقم دائمًا بإنهاء إجابتك بأحد مستويات الخطورة التالية:\n\n🟢 يمكن إدارتها في المنزل - إليك الطريقة\n🟡 استشر الطبيب خلال 24-48 ساعة\n🔴 الطوارئ الآن\n\nاستخدم أدوات بحث خرائط جوجل للعثور على أماكن حقيقية فقط في مدينة المستخدم الحالية. لا تخزن أي بيانات شخصية.";
+      const systemInstruction = (responseMimeType === "application/json") 
+        ? (lang === 'fr' 
+            ? "Tu es Anzar, un assistant médical marocain expert. Réponds UNIQUEMENT au format JSON demandé. Ne rajoute aucun texte avant ou après le JSON. Ne fais pas de triage si tu analyses des médicaments ou des images."
+            : "أنت أنزار، مساعد طبي مغربي خبير. أجب فقط بتنسيق JSON المطلوب. لا تضف أي نص قبل أو بعد JSON. لا تقم بالفرز إذا كنت تحلل الأدوية أو الصور.")
+        : (lang === 'fr' 
+            ? "Tu es Anzar, un assistant médical marocain expert. Tu réponds en français, en Arabe ou en Darija selon la langue de l'utilisateur. Tes conseils doivent être clairs, simples et responsables. Rappelle TOUJOURS de consulter un médecin pour les cas sérieux. Si l'utilisateur décrit des symptômes, termine TOUJOURS ta réponse par l'un de ces niveaux de gravité :\n\n🟢 Gérable à domicile — voici comment\n🟡 Consulter un médecin dans les 24-48h\n🔴 Urgences maintenant\n\nUtilise les outils de recherche Google Maps pour trouver des lieux réels UNIQUEMENT dans la ville actuelle de l'utilisateur. Ne stocke aucune donnée personnelle."
+            : "أنت أنزار، مساعد طبي مغربي خبير. تجيب باللغة الفرنسية أو العربية أو الدارجة حسب لغة المستخدم. يجب أن تكون نصائحك واضحة وبسيطة ومسؤولة. ذكر دائمًا باستشارة الطبيب في الحالات الخطيرة. إذا وصف المستخدم أعراضًا، فقم دائمًا بإنهاء إجابتك بأحد مستويات الخطورة التالية:\n\n🟢 يمكن إدارتها في المنزل - إليك الطريقة\n🟡 استشر الطبيب خلال 24-48 ساعة\n🔴 الطوارئ الآن\n\nاستخدم أدوات بحث خرائط جوجل للعثور على أماكن حقيقية فقط في مدينة المستخدم الحالية. لا تخزن أي بيانات شخصية.");
 
       const config: any = {
         systemInstruction,
@@ -1027,13 +1170,7 @@ export default function App() {
         });
 
         const textResponse = response.text || "";
-        let parsedData: any = null;
-
-        try {
-          parsedData = JSON.parse(textResponse);
-        } catch (e) {
-          console.error("JSON parse error:", e);
-        }
+        let parsedData = extractJson(textResponse);
 
         const modelMessage: Message = {
           role: "model",
@@ -1101,7 +1238,7 @@ export default function App() {
               config: { thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } }
             });
             
-            const alertData = JSON.parse(alertResponse.text || "null");
+            const alertData = extractJson(alertResponse.text || "null");
             if (alertData && alertData.titre) {
               setMessages(prev => [...prev, { 
                 role: "model", 
@@ -1127,12 +1264,7 @@ export default function App() {
       setCurrentConversationId(Date.now().toString());
     }
     
-    let parsedData: any = null;
-    try {
-      parsedData = JSON.parse(jsonResult);
-    } catch (e) {
-      console.error("Scan JSON parse error:", e);
-    }
+    let parsedData = extractJson(jsonResult);
 
     if (!parsedData || (!parsedData.medicaments && !parsedData.observation)) {
       setMessages(prev => [...prev, {
@@ -1763,7 +1895,7 @@ export default function App() {
                   setCheckerInput("");
                 }
               }}
-              className="fixed bottom-0 left-0 right-0 z-[110] bg-white rounded-t-[2.5rem] shadow-2xl border-t border-blue-100 max-h-[85vh] flex flex-col overflow-hidden"
+              className="fixed bottom-0 left-0 right-0 z-[110] bg-white rounded-t-[3rem] shadow-2xl border-t border-blue-100 max-h-[85vh] flex flex-col overflow-hidden"
             >
               {/* Drag Handle */}
               <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mt-4 mb-2 shrink-0" />
@@ -1790,8 +1922,8 @@ export default function App() {
               <div className="p-6 flex flex-col gap-6 overflow-y-auto">
                 <p className="text-sm text-blue-700/80 leading-relaxed font-medium">
                   {lang === 'fr' 
-                    ? "Entrez les noms des médicaments séparés par une virgule pour vérifier les interactions connues." 
-                    : "أدخل أسماء الأدوية مفصولة بفاصلة للتحقق من التفاعلات المعروفة."}
+                    ? "Entrez les noms des médicaments, prenez une photo ou enregistrez un audio pour vérifier les interactions." 
+                    : "أدخل أسماء الأدوية، أو التقط صورة، أو سجل مقطعاً صوتياً للتحقق من التفاعلات."}
                 </p>
                 
                 <div className="relative">
@@ -1800,9 +1932,40 @@ export default function App() {
                     value={checkerInput}
                     onChange={(e) => setCheckerInput(e.target.value)}
                     placeholder={lang === 'fr' ? "Ex: Aspirine, Ibuprofène" : "مثال: أسبرين، إيبوبروفين"}
-                    className="w-full px-5 py-4 rounded-2xl border border-blue-100 focus:border-blue-300 focus:ring-4 focus:ring-blue-500/5 text-base placeholder:text-blue-300 transition-all bg-blue-50/30"
+                    className="w-full px-6 py-5 rounded-[2rem] border border-blue-100 focus:border-blue-300 focus:ring-4 focus:ring-blue-500/5 text-base placeholder:text-blue-300 transition-all bg-blue-50/30 pr-28"
                   />
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      capture="environment" 
+                      className="hidden" 
+                      ref={photoInputRef}
+                      onChange={handlePhotoCapture}
+                    />
+                    <button 
+                      onClick={() => photoInputRef.current?.click()}
+                      className="p-2 text-blue-600 hover:bg-blue-100 rounded-full transition-colors"
+                      title={lang === 'fr' ? "Prendre une photo" : "التقاط صورة"}
+                    >
+                      <Camera className="w-5 h-5" />
+                    </button>
+                    <button 
+                      onClick={isRecording ? stopRecording : startRecording}
+                      className={`p-2 rounded-full transition-colors ${isRecording ? 'bg-red-100 text-red-600 animate-pulse' : 'text-blue-600 hover:bg-blue-100'}`}
+                      title={isRecording ? (lang === 'fr' ? "Arrêter" : "إيقاف") : (lang === 'fr' ? "Enregistrer un audio" : "تسجيل صوتي")}
+                    >
+                      {isRecording ? <StopCircle className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                    </button>
+                  </div>
                 </div>
+
+                {isProcessingMedia && (
+                  <div className="flex items-center gap-2 text-xs text-blue-600 font-medium animate-pulse">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    {lang === 'fr' ? "Analyse en cours..." : "جاري التحليل..."}
+                  </div>
+                )}
 
                 <button
                   onClick={checkInteractions}

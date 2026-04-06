@@ -27,10 +27,7 @@ export const PrescriptionScanner: React.FC<PrescriptionScannerProps> = ({ onClos
         video: { facingMode: { ideal: 'environment' } } 
       });
       setStream(mediaStream);
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-        setIsCameraActive(true);
-      }
+      setIsCameraActive(true);
     } catch (err: any) {
       console.error("Error accessing camera:", err);
       if (err.message === "MEDIA_DEVICES_NOT_SUPPORTED") {
@@ -55,6 +52,12 @@ export const PrescriptionScanner: React.FC<PrescriptionScannerProps> = ({ onClos
     startCamera();
     return () => stopCamera();
   }, []);
+
+  useEffect(() => {
+    if (isCameraActive && stream && videoRef.current) {
+      videoRef.current.srcObject = stream;
+    }
+  }, [isCameraActive, stream]);
 
   const [showFlash, setShowFlash] = useState(false);
 
@@ -149,7 +152,7 @@ export const PrescriptionScanner: React.FC<PrescriptionScannerProps> = ({ onClos
         onDragEnd={(_, info) => {
           if (info.offset.y > 100) onClose();
         }}
-        className="fixed bottom-0 left-0 right-0 z-[110] bg-[#0A0A0A] rounded-t-[2.5rem] shadow-2xl border-t border-white/10 max-h-[92vh] flex flex-col overflow-hidden"
+        className="fixed bottom-0 left-0 right-0 z-[110] bg-[#0A0A0A] rounded-t-[3rem] shadow-2xl border-t border-white/10 max-h-[92vh] flex flex-col overflow-hidden"
       >
         {/* Drag Handle */}
         <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mt-4 mb-2 shrink-0" />
@@ -199,7 +202,7 @@ export const PrescriptionScanner: React.FC<PrescriptionScannerProps> = ({ onClos
 
             {/* Scanning Overlay */}
             <div className="absolute inset-0 pointer-events-none">
-              <div className="absolute inset-8 border-2 border-blue-400/50 rounded-2xl">
+              <div className="absolute inset-8 border-2 border-blue-400/50 rounded-3xl">
                 <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-blue-500 rounded-tl-lg" />
                 <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-blue-500 rounded-tr-lg" />
                 <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-blue-500 rounded-bl-lg" />
@@ -217,7 +220,7 @@ export const PrescriptionScanner: React.FC<PrescriptionScannerProps> = ({ onClos
             </div>
 
             {error && (
-              <div className="absolute inset-x-4 bottom-4 p-4 bg-red-500/90 backdrop-blur-md rounded-2xl text-white text-sm flex items-start gap-3 shadow-lg">
+              <div className="absolute inset-x-4 bottom-4 p-4 bg-red-500/90 backdrop-blur-md rounded-3xl text-white text-sm flex items-start gap-3 shadow-lg">
                 <AlertCircle className="w-5 h-5 shrink-0" />
                 <p>{error}</p>
               </div>

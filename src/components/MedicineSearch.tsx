@@ -31,6 +31,34 @@ export const MedicineSearch: React.FC<MedicineSearchProps> = ({ onClose, lang })
     ? ["Doliprane", "Amoxicilline", "Spasfon", "Humex", "Ventoline"]
     : ["دوليبران", "أموكسيسيلين", "سباسفون", "هوميكس", "فنتولين"];
 
+  const extractJson = (text: string) => {
+    try {
+      const start = text.indexOf('{');
+      const end = text.lastIndexOf('}');
+      const startArr = text.indexOf('[');
+      const endArr = text.lastIndexOf(']');
+      
+      let finalStart = -1;
+      let finalEnd = -1;
+      
+      if (start !== -1 && (startArr === -1 || start < startArr)) {
+        finalStart = start;
+        finalEnd = end;
+      } else if (startArr !== -1) {
+        finalStart = startArr;
+        finalEnd = endArr;
+      }
+      
+      if (finalStart !== -1 && finalEnd !== -1) {
+        const jsonStr = text.substring(finalStart, finalEnd + 1);
+        return JSON.parse(jsonStr);
+      }
+      return JSON.parse(text);
+    } catch (e) {
+      return null;
+    }
+  };
+
   const handleSearch = async (e?: React.FormEvent, suggestion?: string) => {
     if (e) e.preventDefault();
     const searchVal = suggestion || query;
@@ -93,7 +121,7 @@ export const MedicineSearch: React.FC<MedicineSearchProps> = ({ onClose, lang })
                   }
                 });
                 
-                const translated = JSON.parse(translationResponse.text || "[]");
+                const translated = extractJson(translationResponse.text || "[]") || [];
                 if (Array.isArray(translated) && translated.length === mappedData.length) {
                   return translated;
                 }
@@ -146,7 +174,7 @@ export const MedicineSearch: React.FC<MedicineSearchProps> = ({ onClose, lang })
         }
       });
 
-      const data = JSON.parse(response.text || "[]");
+      const data = extractJson(response.text || "[]") || [];
       if (Array.isArray(data)) {
         searchCache.set(cacheKey, data);
         setResults(data);
@@ -198,7 +226,7 @@ export const MedicineSearch: React.FC<MedicineSearchProps> = ({ onClose, lang })
         onDragEnd={(_, info) => {
           if (info.offset.y > 100) onClose();
         }}
-        className="fixed bottom-0 left-0 right-0 z-[110] bg-white rounded-t-[2.5rem] shadow-2xl border-t border-blue-100 max-h-[92vh] flex flex-col overflow-hidden"
+        className="fixed bottom-0 left-0 right-0 z-[110] bg-white rounded-t-[3rem] shadow-2xl border-t border-blue-100 max-h-[92vh] flex flex-col overflow-hidden"
         dir={lang === 'ar' ? 'rtl' : 'ltr'}
       >
         {/* Drag Handle */}
@@ -218,7 +246,7 @@ export const MedicineSearch: React.FC<MedicineSearchProps> = ({ onClose, lang })
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={lang === 'fr' ? "Nom du médicament ou générique..." : "اسم الدواء أو الجنيس..."}
-              className="w-full pl-10 pr-4 py-3 bg-gray-50 border-none rounded-2xl text-sm focus:ring-2 focus:ring-blue-500 transition-all"
+              className="w-full pl-10 pr-4 py-3 bg-gray-50 border-none rounded-3xl text-sm focus:ring-2 focus:ring-blue-500 transition-all"
               autoFocus
             />
             <Search className={`absolute ${lang === 'ar' ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400`} />
@@ -226,7 +254,7 @@ export const MedicineSearch: React.FC<MedicineSearchProps> = ({ onClose, lang })
           <button 
             onClick={() => handleSearch()}
             disabled={isLoading || !query.trim()}
-            className="px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-all"
+            className="px-4 py-2.5 bg-blue-600 text-white rounded-2xl text-sm font-bold shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-all"
           >
             {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : (lang === 'fr' ? "Chercher" : "بحث")}
           </button>

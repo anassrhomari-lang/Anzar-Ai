@@ -23,7 +23,7 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onClose, lang }) =
         animate={{ y: 0 }}
         exit={{ y: "100%" }}
         transition={{ type: "spring", damping: 25, stiffness: 200 }}
-        className="fixed bottom-0 left-0 right-0 z-[210] bg-white rounded-t-[2.5rem] shadow-2xl max-h-[90vh] flex flex-col overflow-hidden"
+        className="fixed bottom-0 left-0 right-0 z-[210] bg-white rounded-t-[3rem] shadow-2xl max-h-[90vh] flex flex-col overflow-hidden"
         dir={lang === 'ar' ? 'rtl' : 'ltr'}
       >
         <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mt-4 mb-2 shrink-0" />

@@ -7,7 +7,7 @@ export const PrescriptionCard = ({ data, lang }: { data: any, lang: 'fr' | 'ar' 
     <motion.div 
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="w-full bg-white border border-blue-100 rounded-2xl shadow-xl shadow-blue-50/50 overflow-hidden my-4"
+      className="w-full bg-white border border-blue-100 rounded-3xl shadow-xl shadow-blue-50/50 overflow-hidden my-4"
     >
       <div className="bg-gradient-to-r from-blue-600 to-blue-500 p-4 text-white flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -79,7 +79,7 @@ export const AnalysisCard = ({ data, lang }: { data: any, lang: 'fr' | 'ar' }) =
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="w-full bg-white border border-gray-100 rounded-2xl shadow-xl shadow-gray-100 overflow-hidden my-4"
+      className="w-full bg-white border border-gray-100 rounded-3xl shadow-xl shadow-gray-100 overflow-hidden my-4"
     >
       {data.urgence === 'rouge' && (
         <div className="bg-gradient-to-r from-red-600 to-red-500 p-4 text-white flex items-center gap-3 animate-pulse">
@@ -175,7 +175,7 @@ export const InteractionCard = ({ data, lang }: { data: any, lang: 'fr' | 'ar' }
     <motion.div 
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="w-full bg-white border border-gray-100 rounded-2xl shadow-xl shadow-gray-100 overflow-hidden my-4"
+      className="w-full bg-white border border-gray-100 rounded-3xl shadow-xl shadow-gray-100 overflow-hidden my-4"
     >
       <div className={`p-4 border-b flex items-center gap-4 ${verdictColors[data.verdict_global as keyof typeof verdictColors]}`}>
         {verdictIcons[data.verdict_global as keyof typeof verdictIcons]}
@@ -188,26 +188,36 @@ export const InteractionCard = ({ data, lang }: { data: any, lang: 'fr' | 'ar' }
       </div>
 
       <div className="p-4 space-y-3">
-        {data.interactions.map((inter: any, idx: number) => (
-          <div key={idx} className="flex flex-col gap-1 p-3 bg-gray-50 rounded-xl border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-bold text-gray-700">
-                <span className="text-blue-600">{inter.entre[0]}</span>
-                <span className="text-gray-400">+</span>
-                <span className="text-blue-600">{inter.entre[1]}</span>
+        {data.interactions && data.interactions.length > 0 ? (
+          data.interactions.map((inter: any, idx: number) => (
+            <div key={idx} className="flex flex-col gap-1 p-3 bg-gray-50 rounded-xl border border-gray-100">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-bold text-gray-700">
+                  <span className="text-blue-600">{inter.entre[0]}</span>
+                  <span className="text-gray-400">+</span>
+                  <span className="text-blue-600">{inter.entre[1]}</span>
+                </div>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  inter.niveau === 'danger' ? 'bg-red-100 text-red-600' : 
+                  inter.niveau === 'attention' ? 'bg-amber-100 text-amber-600' : 
+                  'bg-green-100 text-green-600'
+                }`}>
+                  {inter.niveau}
+                </span>
               </div>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                inter.niveau === 'danger' ? 'bg-red-100 text-red-600' : 
-                inter.niveau === 'attention' ? 'bg-amber-100 text-amber-600' : 
-                'bg-green-100 text-green-600'
-              }`}>
-                {inter.niveau}
-              </span>
+              <p className="text-xs text-gray-600 mt-1">{inter.explication}</p>
+              <p className="text-[10px] font-bold text-blue-700 mt-1">💡 {inter.conseil}</p>
             </div>
-            <p className="text-xs text-gray-600 mt-1">{inter.explication}</p>
-            <p className="text-[10px] font-bold text-blue-700 mt-1">💡 {inter.conseil}</p>
+          ))
+        ) : (
+          <div className="py-4 text-center">
+            <p className="text-sm text-gray-500 italic">
+              {lang === 'fr' 
+                ? "Aucune interaction majeure détectée ou médicaments non spécifiés." 
+                : "لم يتم اكتشاف تفاعلات كبرى أو لم يتم تحديد الأدوية."}
+            </p>
           </div>
-        ))}
+        )}
       </div>
 
       {data.verdict_global === 'danger' && (
@@ -236,7 +246,7 @@ export const TriageCard = ({ data, lang }: { data: any, lang: 'fr' | 'ar' }) => 
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="w-full bg-white border border-gray-100 rounded-2xl shadow-2xl shadow-gray-200 overflow-hidden my-4"
+      className="w-full bg-white border border-gray-100 rounded-3xl shadow-2xl shadow-gray-200 overflow-hidden my-4"
     >
       <div className={`p-4 flex items-center gap-3 ${colors[verdict.niveau as keyof typeof colors]}`}>
         <ShieldAlert className="w-6 h-6" />
