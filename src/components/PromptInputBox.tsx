@@ -636,7 +636,7 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
-        <div className="flex flex-col min-h-[100px] justify-between">
+        <div className="flex flex-col min-h-[80px] justify-between">
           <div
             className={cn(
               "transition-all duration-300 flex-1",
@@ -651,7 +651,7 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
                   ? (lang === 'fr' ? "Trouver un médecin spécialiste" : "البحث عن طبيب متخصص")
                   : placeholder || (lang === 'fr' ? "Décrivez vos symptômes ou posez une question..." : "صف الأعراض أو اطرح سؤالاً...")
               }
-              className="text-sm md:text-base bg-transparent px-1 min-h-[60px]"
+              className="text-sm md:text-base bg-transparent px-1 min-h-[44px]"
             />
           </div>
 

@@ -70,10 +70,10 @@ export const LandingSections: React.FC<LandingSectionsProps> = ({ lang, onTrigge
   };
 
   return (
-    <div className={`flex flex-col items-center w-full max-w-3xl mx-auto mt-32 md:mt-48 pb-12 gap-20 text-center px-4`} dir={isRtl ? 'rtl' : 'ltr'}>
+    <div className={`flex flex-col items-center w-full max-w-3xl mx-auto mt-20 md:mt-32 pb-12 gap-16 text-center px-4`} dir={isRtl ? 'rtl' : 'ltr'}>
       
       {/* Section 1 */}
-      <section className="flex flex-col items-center w-full pt-20 md:pt-32">
+      <section className="flex flex-col items-center w-full pt-12 md:pt-20">
         <h2 className="text-2xl md:text-3xl font-serif text-blue-900 mb-4 leading-tight">
           {renderText(text.title1)}
         </h2>

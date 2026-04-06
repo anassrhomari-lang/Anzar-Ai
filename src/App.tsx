@@ -150,7 +150,7 @@ const PharmacySheet = ({
       </div>
 
       {/* Map View */}
-      <div className="h-[45vh] md:h-96 w-full shrink-0">
+      <div className="h-[40vh] md:h-80 w-full shrink-0">
         <Suspense fallback={<div className="w-full h-full flex items-center justify-center bg-gray-100"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>}>
           <PharmacyMap 
             userLat={userCoords?.lat || 33.5731}
