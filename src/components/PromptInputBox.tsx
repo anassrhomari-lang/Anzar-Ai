@@ -1,7 +1,7 @@
-import React from "react";
+import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle, useCallback } from "react";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { ArrowUp, Paperclip, Square, X, StopCircle, Mic, Pill, MapPin, Navigation, Scan, Search, Activity, Send } from "lucide-react";
+import { ArrowUp, Paperclip, Square, X, StopCircle, Mic, Pill, MapPin, Navigation, Scan, Search, Activity, Send, Camera } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 // Utility function for className merging
@@ -134,7 +134,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       default: "h-10 px-4 py-2",
       sm: "h-8 px-3 text-sm",
       lg: "h-12 px-6",
-      icon: "h-8 w-8 rounded-full aspect-[1/1]",
+      icon: "h-8 w-8 rounded-xl aspect-[1/1]",
     };
     return (
       <button
@@ -155,16 +155,12 @@ Button.displayName = "Button";
 // VoiceRecorder Component
 interface VoiceRecorderProps {
   isRecording: boolean;
-  onStartRecording: () => void;
-  onStopRecording: (duration: number) => void;
-  visualizerBars?: number;
+  visualizerData: number[];
   lang?: 'fr' | 'ar';
 }
 const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   isRecording,
-  onStartRecording,
-  onStopRecording,
-  visualizerBars = 32,
+  visualizerData,
   lang = 'fr',
 }) => {
   const [time, setTime] = React.useState(0);
@@ -172,20 +168,18 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
 
   React.useEffect(() => {
     if (isRecording) {
-      onStartRecording();
       timerRef.current = setInterval(() => setTime((t) => t + 1), 1000);
     } else {
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
-      onStopRecording(time);
       setTime(0);
     }
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isRecording, time, onStartRecording, onStopRecording]);
+  }, [isRecording]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -205,22 +199,28 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
         <span className="font-mono text-sm text-blue-800">{formatTime(time)}</span>
       </div>
       <div className="w-full h-10 flex items-center justify-center gap-0.5 px-4 mb-4">
-        {[...Array(visualizerBars)].map((_, i) => (
-          <div
-            key={i}
-            className="w-0.5 rounded-full bg-blue-500 animate-pulse"
-            style={{
-              height: `${Math.max(15, Math.random() * 100)}%`,
-              animationDelay: `${i * 0.05}s`,
-              animationDuration: `${0.5 + Math.random() * 0.5}s`,
-            }}
-          />
-        ))}
+        {visualizerData.length > 0 ? (
+          visualizerData.map((v, i) => (
+            <motion.div
+              key={i}
+              initial={{ height: "15%" }}
+              animate={{ height: `${Math.max(15, v)}%` }}
+              className="w-1 rounded-full bg-blue-500"
+            />
+          ))
+        ) : (
+          [...Array(32)].map((_, i) => (
+            <div
+              key={i}
+              className="w-1 h-2 rounded-full bg-blue-200"
+            />
+          ))
+        )}
       </div>
       <p className="text-xs text-blue-600/60 text-center">
         {lang === 'fr' 
-          ? "Vous pouvez expliquer vos symptômes ou poser votre question en français."
-          : "يمكنك شرح الأعراض أو طرح سؤالك باللغة العربية."}
+          ? "Parlez maintenant. Nous répondrons dans votre langue."
+          : "تحدث الآن. سنجيب بلغتك."}
       </p>
     </div>
   );
@@ -436,7 +436,7 @@ const CustomDivider: React.FC = () => (
 
 // Main PromptInputBox Component
 interface PromptInputBoxProps {
-  onSend?: (message: string, files?: File[]) => void;
+  onSend?: (message: string, files?: File[], audioBlob?: Blob) => void;
   isLoading?: boolean;
   placeholder?: string;
   className?: string;
@@ -455,6 +455,14 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
   const [filePreviews, setFilePreviews] = React.useState<{ [key: string]: string }>({});
   const [selectedImage, setSelectedImage] = React.useState<string | null>(null);
   const [isRecording, setIsRecording] = React.useState(false);
+  const [audioBlob, setAudioBlob] = React.useState<Blob | null>(null);
+  const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
+  const audioChunksRef = React.useRef<Blob[]>([]);
+  const [audioStream, setAudioStream] = React.useState<MediaStream | null>(null);
+  const [analyser, setAnalyser] = React.useState<AnalyserNode | null>(null);
+  const [dataArray, setDataArray] = React.useState<Uint8Array | null>(null);
+  const animationFrameRef = React.useRef<number | null>(null);
+  const [visualizerData, setVisualizerData] = React.useState<number[]>([]);
   const [showPharmacy, setShowPharmacy] = React.useState(false);
   const [showLocation, setShowLocation] = React.useState(false);
   const uploadInputRef = React.useRef<HTMLInputElement>(null);
@@ -469,8 +477,6 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
       setShowPharmacy(false);
     }
   };
-
-  const handleLocationToggle = () => handleToggleChange("location");
 
   const isImageFile = (file: File) => file.type.startsWith("image/");
 
@@ -507,14 +513,6 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
     if (imageFiles.length > 0) processFile(imageFiles[0]);
   }, []);
 
-  const handleRemoveFile = (index: number) => {
-    const fileToRemove = files[index];
-    if (fileToRemove && filePreviews[fileToRemove.name]) setFilePreviews({});
-    setFiles([]);
-  };
-
-  const openImageModal = (imageUrl: string) => setSelectedImage(imageUrl);
-
   const handlePaste = React.useCallback((e: ClipboardEvent) => {
     const items = e.clipboardData?.items;
     if (!items) return;
@@ -535,7 +533,14 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
     return () => document.removeEventListener("paste", handlePaste);
   }, [handlePaste]);
 
+  const [shouldShake, setShouldShake] = useState(false);
+
   const handleSubmit = () => {
+    if ((input.trim() || files.length > 0) && !consentChecked) {
+      setShouldShake(true);
+      setTimeout(() => setShouldShake(false), 500);
+      return;
+    }
     if ((input.trim() || files.length > 0) && consentChecked) {
       let messagePrefix = "";
       if (showPharmacy) messagePrefix = "[Pharmacy: ";
@@ -548,12 +553,67 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
     }
   };
 
-  const handleStartRecording = () => console.log("Started recording");
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      setAudioStream(stream);
+      
+      const recorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+      audioChunksRef.current = [];
 
-  const handleStopRecording = (duration: number) => {
-    console.log(`Stopped recording after ${duration} seconds`);
-    setIsRecording(false);
-    onSend(`[Voice message - ${duration} seconds]`, []);
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        setAudioBlob(blob);
+        handleStopRecording(blob);
+      };
+
+      // Setup Analyser for sound wave animation
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const source = audioContext.createMediaStreamSource(stream);
+      const analyserNode = audioContext.createAnalyser();
+      analyserNode.fftSize = 64;
+      source.connect(analyserNode);
+      
+      setAnalyser(analyserNode);
+      const bufferLength = analyserNode.frequencyBinCount;
+      const data = new Uint8Array(bufferLength);
+      setDataArray(data);
+
+      const updateVisualizer = () => {
+        analyserNode.getByteFrequencyData(data);
+        const normalizedData = Array.from(data).map(v => (v / 255) * 100);
+        setVisualizerData(normalizedData);
+        animationFrameRef.current = requestAnimationFrame(updateVisualizer);
+      };
+      updateVisualizer();
+
+      recorder.start();
+      setIsRecording(true);
+    } catch (err) {
+      console.error("Error starting recording:", err);
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (audioStream) {
+        audioStream.getTracks().forEach(track => track.stop());
+      }
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    }
+  };
+
+  const handleStopRecording = (blob: Blob) => {
+    onSend("Voice message", [], blob);
   };
 
   const hasContent = input.trim() !== "" || files.length > 0;
@@ -566,7 +626,7 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
         isLoading={isLoading}
         onSubmit={handleSubmit}
         className={cn(
-          "w-full bg-gray-100/80 border-none shadow-none rounded-[2rem] p-4 transition-all duration-300",
+          "w-full bg-gray-100/80 border-none shadow-none rounded-2xl p-4 transition-all duration-300",
           isRecording && "bg-gray-200/80",
           className
         )}
@@ -598,34 +658,37 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
           {isRecording && (
             <VoiceRecorder
               isRecording={isRecording}
-              onStartRecording={handleStartRecording}
-              onStopRecording={handleStopRecording}
+              visualizerData={visualizerData}
               lang={lang}
             />
           )}
 
-          <div className="flex items-center justify-between mt-2">
-            <div className="flex items-center gap-0.5">
-              <PromptInputAction tooltip={lang === 'fr' ? "Scanner une ordonnance" : "مسح الوصفة الطبية"}>
-                <button onClick={onTriggerScanner} className="p-2 text-blue-400 hover:text-blue-600 transition-colors">
-                  <Scan className="h-5 w-5" />
+          <div className="flex items-center justify-between mt-3 px-1">
+            <div className="flex items-center gap-2">
+              <PromptInputAction tooltip={lang === 'fr' ? "Scanner une ordonnance (IA)" : "مسح الوصفة (ذكاء اصطناعي)"}>
+                <button 
+                  onClick={onTriggerScanner} 
+                  className="flex items-center gap-2 h-9 px-4 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-all text-[11px] font-bold border border-blue-100 shadow-sm"
+                >
+                  <Camera className="h-4 w-4" />
+                  <span className="hidden md:inline">{lang === 'fr' ? "Scanner" : "مسح"}</span>
                 </button>
               </PromptInputAction>
 
               <PromptInputAction tooltip={lang === 'fr' ? "Rechercher un médicament" : "البحث عن دواء"}>
-                <button onClick={onTriggerSearch} className="p-2 text-blue-400 hover:text-blue-600 transition-colors">
-                  <Search className="h-5 w-5" />
+                <button 
+                  onClick={onTriggerSearch} 
+                  className="flex items-center justify-center w-9 h-9 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-all border border-blue-100 shadow-sm"
+                >
+                  <Pill className="h-5 w-5" />
                 </button>
               </PromptInputAction>
 
-              <PromptInputAction tooltip={lang === 'fr' ? "Vérifier mes médicaments" : "التحقق من أدويتي"}>
-                <button onClick={onTriggerChecker} className="p-2 text-blue-400 hover:text-blue-600 transition-colors">
-                  <Activity className="h-5 w-5" />
-                </button>
-              </PromptInputAction>
-
-              <PromptInputAction tooltip="Upload image">
-                <button onClick={() => uploadInputRef.current?.click()} className="p-2 text-blue-400 hover:text-blue-600 transition-colors">
+              <PromptInputAction tooltip={lang === 'fr' ? "Joindre un document" : "إرفاق مستند"}>
+                <button 
+                  onClick={() => uploadInputRef.current?.click()} 
+                  className="flex items-center justify-center w-9 h-9 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-all border border-blue-100 shadow-sm"
+                >
                   <Paperclip className="h-5 w-5" />
                   <input ref={uploadInputRef} type="file" className="hidden" onChange={(e) => {
                     if (e.target.files && e.target.files.length > 0) processFile(e.target.files[0]);
@@ -634,62 +697,81 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
                 </button>
               </PromptInputAction>
 
-              <div className="flex items-center ml-1">
+              <PromptInputAction tooltip={lang === 'fr' ? "Pharmacies à proximité" : "الصيدليات القريبة"}>
+                <button
+                  onClick={() => {
+                    if (onTriggerPharmacy) onTriggerPharmacy();
+                    handleToggleChange("pharmacy");
+                  }}
+                  className={cn(
+                    "flex items-center justify-center w-9 h-9 rounded-xl transition-all border shadow-sm",
+                    showPharmacy 
+                      ? "bg-blue-600 text-white border-blue-600" 
+                      : "bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100"
+                  )}
+                >
+                  <MapPin className="h-5 w-5" />
+                </button>
+              </PromptInputAction>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <PromptInputAction tooltip={lang === 'fr' ? "Message vocal" : "رسالة صوتية"}>
+                <button
+                  onClick={() => isRecording ? stopRecording() : startRecording()}
+                  className={cn(
+                    "flex items-center justify-center w-9 h-9 rounded-xl transition-all border shadow-sm",
+                    isRecording 
+                      ? "bg-red-500 text-white border-red-500 animate-pulse" 
+                      : "bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100"
+                  )}
+                >
+                  {isRecording ? <StopCircle className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+                </button>
+              </PromptInputAction>
+
+              <PromptInputAction tooltip={lang === 'fr' ? "Envoyer" : "إرسال"}>
                 <button
                   onClick={handleSubmit}
                   disabled={!hasContent || !consentChecked || isLoading}
                   className={cn(
-                    "w-8 h-8 rounded-full flex items-center justify-center transition-all",
-                    hasContent && consentChecked ? "bg-gray-300 text-blue-600" : "bg-transparent text-gray-400"
+                    "w-9 h-9 rounded-xl flex items-center justify-center transition-all border shadow-sm",
+                    hasContent && consentChecked 
+                      ? "bg-blue-600 text-white border-blue-600 shadow-md" 
+                      : "bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed"
                   )}
                 >
                   <Send className="h-4 w-4" />
                 </button>
-              </div>
-
-              <div className="h-4 w-[1px] bg-gray-300 mx-2" />
-
-              <button
-                onClick={() => {
-                  if (onTriggerPharmacy) onTriggerPharmacy();
-                  handleToggleChange("pharmacy");
-                }}
-                className={cn(
-                  "p-2 transition-colors",
-                  showPharmacy ? "text-blue-600" : "text-blue-400 hover:text-blue-600"
-                )}
-              >
-                <MapPin className="h-5 w-5" />
-              </button>
+              </PromptInputAction>
             </div>
-
-            <button
-              onClick={() => setIsRecording(!isRecording)}
-              className={cn(
-                "p-2 transition-colors",
-                isRecording ? "text-red-500" : "text-blue-400 hover:text-blue-600"
-              )}
-            >
-              {isRecording ? <StopCircle className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-            </button>
           </div>
         </div>
       </PromptInput>
 
-      <div className="flex items-center gap-2 px-4">
+      <motion.div 
+        animate={shouldShake ? { x: [-2, 2, -2, 2, 0] } : {}}
+        className="flex items-center gap-2 px-4"
+      >
         <input 
           type="checkbox" 
           id="consent" 
           checked={consentChecked}
           onChange={(e) => onConsentChange?.(e.target.checked)}
-          className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          className={cn(
+            "w-4 h-4 rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500 transition-all",
+            shouldShake && "border-red-400 ring-2 ring-red-100"
+          )}
         />
-        <label htmlFor="consent" className="text-[10px] md:text-xs text-blue-400 cursor-pointer select-none">
+        <label htmlFor="consent" className={cn(
+          "text-[10px] md:text-xs cursor-pointer select-none transition-colors",
+          shouldShake ? "text-red-500 font-bold" : "text-blue-400"
+        )}>
           {lang === 'fr' 
             ? "Je comprends que mes données ne sont ni partagées ni stockées."
             : "أفهم أن بياناتي لا يتم مشاركتها ولا تخزينها."}
         </label>
-      </div>
+      </motion.div>
 
       <ImageViewDialog imageUrl={selectedImage} onClose={() => setSelectedImage(null)} />
     </div>

@@ -1,0 +1,33 @@
+{
+  "entities": {
+    "medicament": {
+      "title": "Médicament",
+      "description": "Information sur un médicament au Maroc",
+      "type": "object",
+      "properties": {
+        "nom": { "type": "string", "description": "Nom commercial" },
+        "url": { "type": "string", "description": "URL de la fiche" },
+        "statut": { "type": "string", "description": "Commercialisé ou non" },
+        "dosage": { "type": "string", "description": "Dosage" },
+        "composition": { "type": "string", "description": "Composition chimique" },
+        "classe": { "type": "string", "description": "Classe thérapeutique" },
+        "labo": { "type": "string", "description": "Laboratoire" },
+        "ppv": { "type": "string", "description": "Prix Public de Vente" },
+        "ph": { "type": "string", "description": "Prix Hospitalier" },
+        "atc": { "type": "string", "description": "Code ATC" },
+        "tableau": { "type": "string", "description": "Tableau de classification" },
+        "notice_url": { "type": "string", "description": "Lien vers la notice PDF" },
+        "generiques_url": { "type": "string", "description": "Lien vers les génériques" },
+        "forme": { "type": "string", "description": "Forme galénique" },
+        "boite": { "type": "string", "description": "Contenu de la boite" }
+      },
+      "required": ["nom", "url"]
+    }
+  },
+  "firestore": {
+    "/medicaments/{medicamentId}": {
+      "schema": "medicament",
+      "description": "Base de données des médicaments"
+    }
+  }
+}

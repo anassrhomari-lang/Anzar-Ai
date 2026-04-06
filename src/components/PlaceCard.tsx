@@ -82,7 +82,7 @@ export const PlaceCard: React.FC<PlaceCardProps> = ({ place, lang = 'fr' }) => {
             href={uri} 
             target="_blank" 
             rel="noopener noreferrer"
-            className="block relative h-32 rounded-xl overflow-hidden bg-blue-50 group"
+            className="block relative h-48 md:h-64 rounded-xl overflow-hidden bg-blue-50 group"
           >
             <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=600&auto=format&fit=crop')] bg-cover bg-center opacity-40 group-hover:opacity-60 transition-opacity" />
             <div className="absolute inset-0 flex items-center justify-center">

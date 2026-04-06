@@ -1,0 +1,54 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: medicaments
+// Document ID: auto-generated
+// Fields:
+//   - nom: string (required) - Nom commercial
+//   - url: string (required) - URL de la fiche
+//   - statut: string (optional) - Commercialisé ou non
+//   - dosage: string (optional) - Dosage
+//   - composition: string (optional) - Composition chimique
+//   - classe: string (optional) - Classe thérapeutique
+//   - labo: string (optional) - Laboratoire
+//   - ppv: string (optional) - Prix Public de Vente
+//   - ph: string (optional) - Prix Hospitalier
+//   - atc: string (optional) - Code ATC
+//   - tableau: string (optional) - Tableau de classification
+//   - notice_url: string (optional) - Lien vers la notice PDF
+//   - generiques_url: string (optional) - Lien vers les génériques
+//   - forme: string (optional) - Forme galénique
+//   - boite: string (optional) - Contenu de la boite
+//
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "anass.rhomari@usmba.ac.ma" && request.auth.token.email_verified == true));
+    }
+
+    // Medicaments collection
+    match /medicaments/{medicamentId} {
+      // Allow authenticated users to read (search)
+      allow read: if isAuthenticated();
+      
+      // Only admins can write (scraping script)
+      allow write: if isAdmin();
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

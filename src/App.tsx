@@ -3,23 +3,73 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useRef, useEffect } from "react";
-import { PanelLeft, X, User, Bot, Home, MapPin, Navigation, Phone, Clock, ExternalLink, Loader2, Store, MessageSquare, Plus, Trash2, History, Activity, Check } from "lucide-react";
+import React, { useState, useRef, useEffect, useCallback, Suspense, lazy } from "react";
+import { PanelLeft, X, User, Bot, Home, MapPin, Navigation, Phone, Clock, ExternalLink, Loader2, Store, MessageSquare, Plus, Trash2, History, Activity, Check, AlertCircle } from "lucide-react";
 import { PromptInputBox } from "./components/PromptInputBox";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import { PlaceCard } from "./components/PlaceCard";
-import { LandingSections } from "./components/LandingSections";
-import { PrescriptionScanner } from "./components/PrescriptionScanner";
-import { MedicineSearch } from "./components/MedicineSearch";
+
+// Lazy load heavy components
+const LandingSections = lazy(() => import("./components/LandingSections").then(m => ({ default: m.LandingSections })));
+const PrescriptionScanner = lazy(() => import("./components/PrescriptionScanner").then(m => ({ default: m.PrescriptionScanner })));
+const PharmacyMap = lazy(() => import("./components/PharmacyMap").then(m => ({ default: m.PharmacyMap })));
+const MedicineSearch = lazy(() => import("./components/MedicineSearch").then(m => ({ default: m.MedicineSearch })));
+const PrivacyPolicy = lazy(() => import("./components/PrivacyPolicy").then(m => ({ default: m.PrivacyPolicy })));
+
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useDragControls } from "framer-motion";
+
+import { PrescriptionCard, AnalysisCard, InteractionCard, TriageCard } from "./components/MedicalCards";
 
 interface Message {
   role: "user" | "model";
   text: string;
+  streaming?: boolean;
   places?: any[];
   showPlaces?: boolean;
+  prescription?: {
+    medicaments: {
+      nom: string;
+      dosage: string;
+      duree: string;
+      posologie: string;
+      indication_simple: string;
+      precautions: string;
+    }[];
+    medecin: string;
+    date: string;
+  };
+  analysis?: {
+    observation: string;
+    hypotheses: string[];
+    urgence: "verte" | "orange" | "rouge";
+    urgence_raison: string;
+    specialiste: string;
+    gestes_immediats: string[];
+    disclaimer: boolean;
+  };
+  interactions?: {
+    interactions: {
+      entre: string[];
+      niveau: "danger" | "attention" | "ok";
+      explication: string;
+      conseil: string;
+    }[];
+    verdict_global: "danger" | "attention" | "ok";
+    message_pharmacien: string;
+  };
+  triage?: {
+    question_suivi: string | null;
+    triage_provisoire: string | null;
+    continuer: boolean;
+    verdict?: {
+      niveau: string;
+      message: string;
+      action: string;
+      specialiste: string;
+    };
+  };
 }
 
 interface Conversation {
@@ -42,6 +92,147 @@ const MOROCCAN_CITIES = [
   { name: "Tétouan", lat: 35.5785, lng: -5.3684 },
 ];
 
+// Pharmacy Sheet Component with Drag-to-Close
+const PharmacySheet = ({ 
+  onClose, 
+  pharmacyType, 
+  lang, 
+  userCoords, 
+  pharmacies 
+}: { 
+  onClose: () => void, 
+  pharmacyType: 'garde' | 'normale', 
+  lang: 'fr' | 'ar',
+  userCoords: { lat: number, lng: number } | null,
+  pharmacies: any[]
+}) => {
+  const dragControls = useDragControls();
+
+  return (
+    <motion.div
+      initial={{ y: "100%" }}
+      animate={{ y: 0 }}
+      exit={{ y: "100%" }}
+      transition={{ type: "spring", damping: 25, stiffness: 200 }}
+      drag="y"
+      dragControls={dragControls}
+      dragListener={false}
+      dragConstraints={{ top: 0, bottom: 0 }}
+      dragElastic={0.2}
+      onDragEnd={(_, info) => {
+        if (info.offset.y > 100) onClose();
+      }}
+      className="absolute bottom-full left-0 right-0 mb-4 bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden z-30 max-h-[85vh] flex flex-col"
+    >
+      {/* Drag Handle & Header */}
+      <div 
+        onPointerDown={(e) => dragControls.start(e)}
+        className="flex flex-col cursor-grab active:cursor-grabbing touch-none shrink-0"
+      >
+        <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mt-3 mb-1" />
+        
+        <div className="p-4 border-b border-gray-50 flex items-center justify-between bg-gray-50/50">
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${pharmacyType === 'garde' ? 'bg-green-500 animate-pulse' : 'bg-blue-500'}`} />
+            <h3 className="font-serif font-bold text-blue-900">
+              {pharmacyType === 'garde' 
+                ? (lang === 'fr' ? "Pharmacies de garde" : "صيدليات الحراسة")
+                : (lang === 'fr' ? "Pharmacies à proximité" : "الصيدليات القريبة")}
+            </h3>
+          </div>
+          <button 
+            onClick={onClose}
+            className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors shadow-sm"
+          >
+            <X className="w-5 h-5 text-gray-600" />
+          </button>
+        </div>
+      </div>
+
+      {/* Map View */}
+      <div className="h-[45vh] md:h-96 w-full shrink-0">
+        <Suspense fallback={<div className="w-full h-full flex items-center justify-center bg-gray-100"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>}>
+          <PharmacyMap 
+            userLat={userCoords?.lat || 33.5731}
+            userLng={userCoords?.lng || -7.5898}
+            pharmacies={pharmacies}
+          />
+        </Suspense>
+      </div>
+      
+      <div className="overflow-y-auto p-4 flex flex-col gap-3">
+        {pharmacies.length === 0 ? (
+          <div className="py-8 text-center text-gray-500">
+            {lang === 'fr' ? "Aucune pharmacie trouvée à proximité." : "لم يتم العثور على صيدليات قريبة."}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {pharmacies.map((pharmacy, index) => (
+              <motion.div 
+                key={pharmacy.id}
+                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ 
+                  duration: 0.3, 
+                  delay: index * 0.05,
+                  ease: "easeOut"
+                }}
+                className="p-4 rounded-2xl border border-gray-100 bg-white hover:border-gray-200 transition-all shadow-sm hover:shadow-md"
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex items-center gap-2">
+                    <Store className="w-5 h-5 text-blue-600" />
+                    <h4 className="font-serif font-bold text-blue-900 text-base">{pharmacy.name}</h4>
+                  </div>
+                  {pharmacy.distance > 0 && (
+                    <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+                      {pharmacy.distance >= 1000 
+                        ? `${(pharmacy.distance / 1000).toFixed(1)} km` 
+                        : `${pharmacy.distance} m`}
+                    </span>
+                  )}
+                </div>
+                
+                <div className="flex flex-col gap-1.5 mb-4">
+                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                    <Clock className="w-3.5 h-3.5" />
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{pharmacyType === 'garde' ? (lang === 'fr' ? 'Ouvert (Garde)' : 'مفتوح (حراسة)') : (lang === 'fr' ? 'Ouvert' : 'مفتوح')}</span>
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                        new Date().getHours() >= 21 || new Date().getHours() < 8 
+                          ? 'bg-indigo-100 text-indigo-700' 
+                          : 'bg-amber-100 text-amber-700'
+                      }`}>
+                        {new Date().getHours() >= 21 || new Date().getHours() < 8 ? 'NUIT' : 'JOUR'}
+                      </span>
+                    </div>
+                  </div>
+                  {pharmacy.address && (
+                    <div className="flex items-start gap-2 text-xs text-gray-400">
+                      <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                      <span className="line-clamp-1">{pharmacy.address}</span>
+                    </div>
+                  )}
+                </div>
+                
+                <a 
+                  href={pharmacy.uri || `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(pharmacy.name)}&destination_place_id=${pharmacy.id.toString().startsWith('ai-') ? '' : pharmacy.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors shadow-sm"
+                >
+                  <Navigation className="w-3.5 h-3.5" />
+                  {lang === 'fr' ? 'Itinéraire' : 'الاتجاهات'}
+                </a>
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+};
+
 export default function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -57,12 +248,39 @@ export default function App() {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isCheckerOpen, setIsCheckerOpen] = useState(false);
+  const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   const [checkerInput, setCheckerInput] = useState("");
   const [checkerResult, setCheckerResult] = useState<{ status: 'green' | 'yellow' | 'red', text: string } | null>(null);
   const [isChecking, setIsChecking] = useState(false);
   const [consentChecked, setConsentChecked] = useState(false);
+  const [nearbyCount, setNearbyCount] = useState<number | null>(null);
 
-  const checkInteractions = async () => {
+  const getDayNightStatus = () => {
+    const hour = new Date().getHours();
+    if (hour >= 21 || hour < 8) return lang === 'fr' ? "Nuit en cours" : "الليل حالياً";
+    return lang === 'fr' ? "Journée en cours" : "النهار حالياً";
+  };
+
+  const isWorkingHours = () => {
+    const now = new Date();
+    const day = now.getDay(); // 0: Sun, 1: Mon, ..., 6: Sat
+    const hour = now.getHours();
+    
+    // Monday to Friday
+    if (day >= 1 && day <= 5) {
+      // 09:00 to 20:00 (standard working hours)
+      return hour >= 9 && hour < 20;
+    }
+    // Saturday
+    if (day === 6) {
+      // 09:00 to 13:00
+      return hour >= 9 && hour < 13;
+    }
+    // Sunday
+    return false;
+  };
+
+  const checkInteractions = useCallback(async () => {
     if (!checkerInput.trim()) return;
     setIsChecking(true);
     setCheckerResult(null);
@@ -79,7 +297,6 @@ export default function App() {
 
     try {
       // OpenFDA search for adverse events involving these drugs
-      // We'll search for reports where both drugs are mentioned as suspect
       const query = meds.map(m => `patient.drug.medicinalproduct:"${m}"`).join(' AND ');
       const url = `https://api.fda.gov/drug/event.json?search=${encodeURIComponent(query)}&limit=1`;
       
@@ -87,8 +304,6 @@ export default function App() {
       const data = await response.json();
 
       if (data.results && data.results.length > 0) {
-        // If we find co-reported events, we flag it. 
-        // This is a simplified logic as requested.
         setCheckerResult({
           status: 'red',
           text: lang === 'fr' 
@@ -96,9 +311,11 @@ export default function App() {
             : "🔴 خطر: تم الإبلاغ عن تفاعلات لهذه المجموعة. تجنب الجمع بينها دون استشارة طبية."
         });
       } else {
-        // Fallback to AI for a more nuanced check if OpenFDA is inconclusive or no exact matches
+        // Fallback to AI for a more nuanced check
         const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+        const targetLang = lang === 'fr' ? 'français' : 'arabe';
         const aiPrompt = `Vérifie les interactions médicamenteuses entre : ${meds.join(', ')}. 
+        Réponds en ${targetLang}.
         Réponds UNIQUEMENT au format JSON : {"status": "green" | "yellow" | "red", "text": "explication courte"}.
         Utilise les codes : 🟢 pour green, 🟡 pour yellow, 🔴 pour red.`;
         
@@ -123,13 +340,13 @@ export default function App() {
     } finally {
       setIsChecking(false);
     }
-  };
+  }, [checkerInput, lang]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   
-  // Load conversations from local storage on mount
+  // Load conversations from session storage on mount
   useEffect(() => {
-    const saved = localStorage.getItem('anzar_conversations');
+    const saved = sessionStorage.getItem('anzar_conversations');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -140,7 +357,7 @@ export default function App() {
     }
   }, []);
 
-  // Save current conversation to local storage
+  // Save current conversation to session storage
   useEffect(() => {
     if (messages.length > 0 && currentConversationId) {
       setConversations(prev => {
@@ -163,7 +380,7 @@ export default function App() {
             timestamp: Date.now()
           }, ...prev];
         }
-        localStorage.setItem('anzar_conversations', JSON.stringify(updated));
+        sessionStorage.setItem('anzar_conversations', JSON.stringify(updated));
         return updated;
       });
     }
@@ -185,8 +402,17 @@ export default function App() {
     e.stopPropagation();
     const updated = conversations.filter(c => c.id !== id);
     setConversations(updated);
-    localStorage.setItem('anzar_conversations', JSON.stringify(updated));
+    sessionStorage.setItem('anzar_conversations', JSON.stringify(updated));
     if (currentConversationId === id) {
+      startNewChat();
+    }
+  };
+
+  const clearAllConversations = () => {
+    const confirmClear = window.confirm(lang === 'fr' ? "Voulez-vous vraiment supprimer tout l'historique ?" : "هل تريد حقاً حذف السجل بالكامل؟");
+    if (confirmClear) {
+      setConversations([]);
+      sessionStorage.removeItem('anzar_conversations');
       startNewChat();
     }
   };
@@ -245,44 +471,106 @@ export default function App() {
     }
   };
 
-  const fetchPharmacies = async (lat: number, lng: number, type: "garde" | "normale") => {
+  const fetchPharmacies = useCallback(async (lat: number, lng: number, type: "garde" | "normale") => {
     try {
-      const response = await fetch(`https://overpass-api.de/api/interpreter?data=[out:json];node["amenity"="pharmacy"](around:2000,${lat},${lng});out body;`);
-      const data = await response.json();
+      if (!window.google || !window.google.maps || !window.google.maps.places) {
+        // Fallback to Overpass if Google SDK is not loaded
+        const response = await fetch(`https://overpass-api.de/api/interpreter?data=[out:json];node["amenity"="pharmacy"](around:2000,${lat},${lng});out body;`);
+        
+        if (!response.ok) {
+          throw new Error(`Overpass API error: ${response.status}`);
+        }
+
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          throw new Error("Overpass API returned non-JSON response");
+        }
+
+        const data = await response.json();
+        
+        const results = data.elements.map((el: any) => {
+          // Calculate distance
+          const R = 6371e3; // metres
+          const φ1 = lat * Math.PI/180;
+          const φ2 = el.lat * Math.PI/180;
+          const Δφ = (el.lat-lat) * Math.PI/180;
+          const Δλ = (el.lon-lng) * Math.PI/180;
+          const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                    Math.cos(φ1) * Math.cos(φ2) *
+                    Math.sin(Δλ/2) * Math.sin(Δλ/2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+          const d = R * c; // in metres
+
+          return {
+            id: el.id,
+            name: el.tags.name || (lang === 'fr' ? "Pharmacie sans nom" : "صيدلية بدون اسم"),
+            lat: el.lat,
+            lng: el.lon,
+            distance: Math.round(d),
+            phone: el.tags.phone || el.tags["contact:phone"] || null,
+            address: el.tags["addr:street"] || null,
+          };
+        }).sort((a: any, b: any) => a.distance - b.distance);
+
+        setPharmacies(results);
+        setShowPharmacySheet(true);
+        return;
+      }
+
+      // Use Google Places API
+      const dummyDiv = document.createElement('div');
+      const service = new google.maps.places.PlacesService(dummyDiv);
       
-      const results = data.elements.map((el: any) => {
-        // Calculate distance
-        const R = 6371e3; // metres
-        const φ1 = lat * Math.PI/180;
-        const φ2 = el.lat * Math.PI/180;
-        const Δφ = (el.lat-lat) * Math.PI/180;
-        const Δλ = (el.lon-lng) * Math.PI/180;
-        const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-                  Math.cos(φ1) * Math.cos(φ2) *
-                  Math.sin(Δλ/2) * Math.sin(Δλ/2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        const d = R * c; // in metres
+      service.nearbySearch({
+        location: { lat, lng },
+        radius: 2000,
+        type: "pharmacy",
+        language: lang === 'fr' ? "fr" : "ar"
+      }, (results, status) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+          const mappedResults = results.map(place => {
+            // Calculate distance manually if not provided by Google
+            const pLat = place.geometry?.location?.lat() || 0;
+            const pLng = place.geometry?.location?.lng() || 0;
+            
+            const R = 6371e3; // metres
+            const φ1 = lat * Math.PI/180;
+            const φ2 = pLat * Math.PI/180;
+            const Δφ = (pLat-lat) * Math.PI/180;
+            const Δλ = (pLng-lng) * Math.PI/180;
+            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                      Math.cos(φ1) * Math.cos(φ2) *
+                      Math.sin(Δλ/2) * Math.sin(Δλ/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            const d = R * c; // in metres
 
-        return {
-          id: el.id,
-          name: el.tags.name || (lang === 'fr' ? "Pharmacie sans nom" : "صيدلية بدون اسم"),
-          lat: el.lat,
-          lng: el.lon,
-          distance: Math.round(d),
-          phone: el.tags.phone || el.tags["contact:phone"] || null,
-          address: el.tags["addr:street"] || null,
-        };
-      }).sort((a: any, b: any) => a.distance - b.distance);
+            return {
+              id: place.place_id || Math.random().toString(),
+              name: place.name || (lang === 'fr' ? "Pharmacie sans nom" : "صيدلية بدون اسم"),
+              lat: pLat,
+              lng: pLng,
+              distance: Math.round(d),
+              address: place.vicinity || null,
+              rating: place.rating,
+              user_ratings_total: place.user_ratings_total,
+              photo: place.photos?.[0]?.getUrl() || null,
+            };
+          }).sort((a, b) => a.distance - b.distance);
 
-      setPharmacies(results);
-      setShowPharmacySheet(true);
+          setPharmacies(mappedResults);
+          setShowPharmacySheet(true);
+        } else {
+          console.error("Google Places search failed:", status);
+          setLocationError(lang === 'fr' ? "Aucune pharmacie trouvée." : "لم يتم العثور على صيدليات.");
+        }
+      });
     } catch (error) {
       console.error("Error fetching pharmacies:", error);
-      setLocationError("Erreur lors de la récupération des pharmacies.");
+      setLocationError(lang === 'fr' ? "Erreur lors de la récupération des pharmacies." : "خطأ أثناء استرجاع الصيدليات.");
     }
-  };
+  }, [lang]);
 
-  const triggerPharmacyFinder = async () => {
+  const triggerPharmacyFinder = useCallback(async () => {
     setIsLocating(true);
     setLocationError(null);
     
@@ -316,7 +604,7 @@ export default function App() {
       const prompt = `Trouve les pharmacies ${type === 'garde' ? 'de garde' : 'ouvertes'} dans un rayon STRICT de 10km maximum autour de ma position (lat: ${lat}, lng: ${lng}). Ne cherche jamais au-delà de cette distance.`;
       
       const response = await ai.models.generateContent({
-        model: "gemini-3.1-pro-preview",
+        model: "gemini-3-flash-preview",
         contents: prompt,
         config: {
           tools: [
@@ -351,13 +639,85 @@ export default function App() {
     } finally {
       setIsLocating(false);
     }
-  };
+  }, [userCoords, lang]);
+
+  // Initial fetch for status card
+  useEffect(() => {
+    if (userCoords && nearbyCount === null) {
+      const fetchCount = async () => {
+        const lat = userCoords.lat;
+        const lng = userCoords.lng;
+
+        // Try Google Maps first if available
+        if (window.google && window.google.maps && window.google.maps.places) {
+          try {
+            const dummyDiv = document.createElement('div');
+            const service = new google.maps.places.PlacesService(dummyDiv);
+            service.nearbySearch({
+              location: { lat, lng },
+              radius: 2000,
+              type: "pharmacy"
+            }, (results, status) => {
+              if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+                setNearbyCount(results.length);
+              } else {
+                // Fallback to Overpass if Google fails
+                fetchOverpassCount(lat, lng);
+              }
+            });
+            return;
+          } catch (e) {
+            console.warn("Google Maps count fetch failed, falling back to Overpass", e);
+          }
+        }
+
+        // Fallback to Overpass
+        fetchOverpassCount(lat, lng);
+      };
+
+      const fetchOverpassCount = async (lat: number, lng: number) => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout
+
+        try {
+          const response = await fetch(`https://overpass-api.de/api/interpreter?data=[out:json];node["amenity"="pharmacy"](around:2000,${lat},${lng});out count;`, {
+            signal: controller.signal
+          });
+          
+          clearTimeout(timeoutId);
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          const contentType = response.headers.get("content-type");
+          if (!contentType || !contentType.includes("application/json")) {
+            throw new Error("Not a JSON response");
+          }
+
+          const data = await response.json();
+          const count = data.elements?.[0]?.tags?.total || data.elements?.length || 0;
+          setNearbyCount(Number(count));
+        } catch (e: any) {
+          clearTimeout(timeoutId);
+          if (e.name === 'AbortError') {
+            console.warn("Overpass count fetch timed out");
+          } else {
+            console.error("Status card count fetch failed", e);
+          }
+          setNearbyCount(0); // Fallback to 0 to stop retrying
+        }
+      };
+
+      fetchCount();
+    }
+  }, [userCoords, nearbyCount]);
 
   // Translate existing messages when language changes
   useEffect(() => {
     if (messages.length === 0 || messagesLangRef.current === lang || isLoading) return;
 
-    const translateMessages = async () => {
+    const translateMessages = async (retryCount = 0) => {
       setIsLoading(true);
       const sourceMessages = [...messages];
       try {
@@ -373,7 +733,7 @@ export default function App() {
         ${JSON.stringify(sourceMessages.map(m => ({ role: m.role, text: m.text })))}`;
 
         const response = await ai.models.generateContent({
-          model: "gemini-3.1-pro-preview",
+          model: "gemini-3-flash-preview",
           contents: prompt,
           config: {
             responseMimeType: "application/json",
@@ -392,18 +752,28 @@ export default function App() {
         } catch (e) {
           console.error("Failed to parse translation JSON", e);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Translation error:", error);
+        
+        // Retry logic for 429 (Rate Limit) or 5xx errors
+        if ((error?.status === 429 || error?.code === 429 || (error?.status >= 500)) && retryCount < 3) {
+          const delay = Math.pow(2, retryCount) * 1000 + Math.random() * 1000;
+          console.log(`Retrying translation in ${delay}ms... (Attempt ${retryCount + 1})`);
+          setTimeout(() => translateMessages(retryCount + 1), delay);
+          return; // Don't set isLoading to false yet
+        }
       } finally {
-        setIsLoading(false);
+        if (retryCount >= 3 || !isLoading) {
+          setIsLoading(false);
+        }
       }
     };
 
     translateMessages();
   }, [lang, messages.length, isLoading]);
 
-  const handleSend = async (text: string, files?: File[]) => {
-    if (!text.trim() && (!files || files.length === 0)) return;
+  const handleSend = async (text: string, files?: File[], audioBlob?: Blob) => {
+    if (!text.trim() && (!files || files.length === 0) && !audioBlob) return;
 
     // Initialize conversation ID if not present
     if (!currentConversationId) {
@@ -432,24 +802,190 @@ export default function App() {
     }
 
     // Add user message
-    setMessages((prev) => [...prev, { role: "user", text: query }]);
+    const userMessageText = audioBlob ? (lang === 'fr' ? "🎤 Message vocal" : "🎤 رسالة صوتية") : query;
+    const newUserMessage: Message = { role: "user", text: userMessageText };
+    setMessages((prev) => [...prev, newUserMessage]);
     setIsLoading(true);
 
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       
+      // 1. Language Detection & Intent (Combined for latency)
+      const langDetectResponse = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: [{ role: "user", parts: [{ text: `Analyse ce message : "${query}". 
+        1. Détecte la langue (darija, français, arabe, anglais).
+        2. Détermine si c'est une recherche de médicament (true/false).
+        Réponds UNIQUEMENT en JSON: {"lang": "...", "isSearch": boolean}.` }] }],
+        config: { 
+          responseMimeType: "application/json",
+          thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
+        }
+      });
+      
+      let detectedLang = 'français';
+      let isSearchQuery = false;
+      
+      try {
+        const detection = JSON.parse(langDetectResponse.text || "{}");
+        detectedLang = detection.lang || 'français';
+        isSearchQuery = detection.isSearch || false;
+      } catch (e) {
+        console.error("Detection parse error:", e);
+      }
+
+      if (isSearchQuery && !files && !audioBlob) {
+        const intentResponse = await ai.models.generateContent({
+          model: "gemini-3-flash-preview",
+          contents: [{ role: "user", parts: [{ text: `L'utilisateur cherche : "${query}". Retourne UNIQUEMENT un JSON : { "termes_recherche": ["toux sèche", "antitussif"], "classe_therapeutique": "Antitussif", "dci_probable": "dextrométhorphane", "eviter": ["antihistaminique", "sédatif"], "reformulation": "Antitussif non sédatif pour toux sèche" }. Langue de réponse: ${detectedLang}.` }] }]
+        });
+        try {
+          const intent = JSON.parse(intentResponse.text || "{}");
+          if (intent.reformulation) {
+            query = intent.reformulation;
+          }
+        } catch (e) {
+          console.error("Intent parse error:", e);
+        }
+      }
+
+      // 3. Build Context (History)
+      const history = messages.map(m => ({
+        role: m.role,
+        parts: [{ text: m.text }]
+      }));
+
+      let contents: any[] = [...history];
+      let currentPrompt = query;
+      let responseMimeType = "text/plain";
+
+      // 3. Special Logic (Vision, Interactions, Triage)
+      if (audioBlob) {
+        const reader = new FileReader();
+        const base64Audio = await new Promise<string>((resolve) => {
+          reader.onload = () => {
+            const result = reader.result as string;
+            resolve(result.split(',')[1]);
+          };
+          reader.readAsDataURL(audioBlob);
+        });
+
+        contents.push({
+          role: "user",
+          parts: [
+            { text: query === "Voice message" ? "Réponds à ce message vocal dans la même langue que l'utilisateur (Darija, Français ou Arabe)." : query },
+            { inlineData: { mimeType: audioBlob.type, data: base64Audio } }
+          ]
+        });
+      } else if (files && files.length > 0) {
+        const parts: any[] = [];
+        
+        // Determine if it's a prescription or a visual symptom
+        const isPrescription = query.toLowerCase().includes("ordonnance") || query.toLowerCase().includes("prescription");
+        
+        if (isPrescription) {
+          parts.push({ text: `Tu es un pharmacien marocain expert. Lis cette ordonnance et retourne un JSON. Réponds UNIQUEMENT en JSON. Langue de réponse: ${detectedLang}.
+          Format JSON attendu:
+          {
+            "medicaments": [
+              {
+                "nom": "...",
+                "dosage": "...",
+                "duree": "...",
+                "posologie": "...",
+                "indication_simple": "à quoi ça sert en 1 phrase",
+                "precautions": "..."
+              }
+            ],
+            "medecin": "...",
+            "date": "..."
+          }` });
+          responseMimeType = "application/json";
+        } else {
+          parts.push({ text: `Tu es un assistant médical expert. Analyse cette image de symptôme visuel et réponds en JSON. Réponds UNIQUEMENT en JSON. Langue de réponse: ${detectedLang}.
+          Format JSON attendu:
+          {
+            "observation": "ce que tu vois visuellement",
+            "hypotheses": ["hypothèse 1", "hypothèse 2"],
+            "urgence": "verte | orange | rouge",
+            "urgence_raison": "pourquoi ce niveau",
+            "specialiste": "dermatologue | urgences | ...",
+            "gestes_immediats": ["geste 1", "geste 2"],
+            "disclaimer": true
+          }` });
+          responseMimeType = "application/json";
+        }
+
+        for (const file of files) {
+          const reader = new FileReader();
+          const base64Data = await new Promise<string>((resolve) => {
+            reader.onload = () => {
+              const result = reader.result as string;
+              resolve(result.split(',')[1]);
+            };
+            reader.readAsDataURL(file);
+          });
+          parts.push({ inlineData: { mimeType: file.type, data: base64Data } });
+        }
+        contents.push({ role: "user", parts });
+      } else {
+        // Check for drug interactions
+        const drugKeywords = ["+", " et ", " avec ", "mélange", "interaction"];
+        const isInteractionCheck = drugKeywords.some(k => query.includes(k)) && query.split(/[+ ]/).length > 2;
+
+        if (isInteractionCheck) {
+          currentPrompt = `Tu es un pharmacien expert. Analyse les interactions entre ces médicaments mentionnés dans: "${query}". Réponds UNIQUEMENT en JSON. Langue de réponse: ${detectedLang}.
+          Format JSON:
+          {
+            "interactions": [
+              {
+                "entre": ["Med1", "Med2"],
+                "niveau": "danger | attention | ok",
+                "explication": "...",
+                "conseil": "..."
+              }
+            ],
+            "verdict_global": "danger | attention | ok",
+            "message_pharmacien": "texte simple pour le patient"
+          }`;
+          responseMimeType = "application/json";
+        } else {
+          // Triage Logic
+          currentPrompt = `Tu es Anzar, un assistant médical marocain. Pose des questions de triage une par une. Réponds UNIQUEMENT en JSON. Langue de réponse: ${detectedLang}.
+          Format JSON:
+          {
+            "question_suivi": "votre question ici ou null si terminé",
+            "triage_provisoire": "verte | orange | rouge | null",
+            "continuer": true | false,
+            "verdict": {
+              "niveau": "rouge | orange | verte",
+              "message": "...",
+              "action": "...",
+              "specialiste": "..."
+            } (seulement si continuer est false)
+          }
+          Message utilisateur: ${query}`;
+          responseMimeType = "application/json";
+        }
+        contents.push({ role: "user", parts: [{ text: currentPrompt }] });
+      }
+
       const systemInstruction = lang === 'fr' 
-        ? "Tu es Anzar, un assistant médical marocain expert. Tu réponds en français ou en Darija selon la langue de l'utilisateur. Tes conseils doivent être clairs, simples et responsables. Rappelle TOUJOURS de consulter un médecin pour les cas sérieux. Si l'utilisateur décrit des symptômes, termine TOUJOURS ta réponse par l'un de ces niveaux de gravité :\n\n🟢 Gérable à domicile — voici comment\n🟡 Consulter un médecin dans les 24-48h\n🔴 Urgences maintenant\n\nUtilise les outils de recherche Google Maps pour trouver des lieux réels UNIQUEMENT dans la ville actuelle de l'utilisateur."
-        : "أنت أنزار، مساعد طبي مغربي خبير. تجيب باللغة الفرنسية أو الدارجة حسب لغة المستخدم. يجب أن تكون نصائحك واضحة وبسيطة ومسؤولة. ذكر دائمًا باستشارة الطبيب في الحالات الخطيرة. إذا وصف المستخدم أعراضًا، فقم دائمًا بإنهاء إجابتك بأحد مستويات الخطورة التالية:\n\n🟢 يمكن إدارتها في المنزل - إليك الطريقة\n🟡 استشر الطبيب خلال 24-48 ساعة\n🔴 الطوارئ الآن\n\nاستخدم أدوات بحث خرائط جوجل للعثور على أماكن حقيقية فقط في مدينة المستخدم الحالية.";
+        ? "Tu es Anzar, un assistant médical marocain expert. Tu réponds en français, en Arabe ou en Darija selon la langue de l'utilisateur. Tes conseils doivent être clairs, simples et responsables. Rappelle TOUJOURS de consulter un médecin pour les cas sérieux. Si l'utilisateur décrit des symptômes, termine TOUJOURS ta réponse par l'un de ces niveaux de gravité :\n\n🟢 Gérable à domicile — voici comment\n🟡 Consulter un médecin dans les 24-48h\n🔴 Urgences maintenant\n\nUtilise les outils de recherche Google Maps pour trouver des lieux réels UNIQUEMENT dans la ville actuelle de l'utilisateur. Ne stocke aucune donnée personnelle."
+        : "أنت أنزار، مساعد طبي مغربي خبير. تجيب باللغة الفرنسية أو العربية أو الدارجة حسب لغة المستخدم. يجب أن تكون نصائحك واضحة وبسيطة ومسؤولة. ذكر دائمًا باستشارة الطبيب في الحالات الخطيرة. إذا وصف المستخدم أعراضًا، فقم دائمًا بإنهاء إجابتك بأحد مستويات الخطورة التالية:\n\n🟢 يمكن إدارتها في المنزل - إليك الطريقة\n🟡 استشر الطبيب خلال 24-48 ساعة\n🔴 الطوارئ الآن\n\nاستخدم أدوات بحث خرائط جوجل للعثور على أماكن حقيقية فقط في مدينة المستخدم الحالية. لا تخزن أي بيانات شخصية.";
 
       const config: any = {
         systemInstruction,
-        tools: [
-          { googleMaps: {} }
-        ],
+        temperature: responseMimeType === "application/json" ? 0.2 : 0.4,
+        responseMimeType,
+        thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
       };
 
-      if (useMaps) {
+      if (responseMimeType !== "application/json") {
+        config.tools = [{ googleMaps: {} }];
+      }
+
+      if (useMaps && responseMimeType !== "application/json") {
         // Try to use existing coords or get new ones
         let lat = userCoords?.lat;
         let lng = userCoords?.lng;
@@ -481,63 +1017,145 @@ export default function App() {
         };
       }
 
-      const responseStream = await ai.models.generateContentStream({
-        model: "gemini-3.1-pro-preview",
-        contents: query,
-        config,
-      });
+      const modelToUse = "gemini-3-flash-preview";
 
-      setMessages((prev) => [
-        ...prev,
-        { role: "model", text: "" },
-      ]);
-      setIsLoading(false);
+      if (responseMimeType === "application/json") {
+        const response = await ai.models.generateContent({
+          model: modelToUse,
+          contents,
+          config,
+        });
 
-      let textResponse = "";
-      let places: any[] = [];
+        const textResponse = response.text || "";
+        let parsedData: any = null;
 
-      for await (const chunk of responseStream) {
-        textResponse += chunk.text || "";
-        const chunks = chunk.candidates?.[0]?.groundingMetadata?.groundingChunks;
-        const newPlaces = chunks?.map((c: any) => c.maps).filter(Boolean) || [];
-        if (newPlaces.length > 0) {
-          places = [...places, ...newPlaces];
+        try {
+          parsedData = JSON.parse(textResponse);
+        } catch (e) {
+          console.error("JSON parse error:", e);
         }
 
-        setMessages((prev) => {
-          const updated = [...prev];
-          updated[updated.length - 1] = {
-            role: "model",
-            text: textResponse,
-            places: places.length > 0 ? places : undefined,
-            showPlaces: false,
-          };
-          return updated;
+        const modelMessage: Message = {
+          role: "model",
+          text: parsedData?.question_suivi || parsedData?.message_pharmacien || parsedData?.observation || textResponse,
+          prescription: parsedData?.medicaments ? parsedData : undefined,
+          analysis: parsedData?.observation ? parsedData : undefined,
+          interactions: parsedData?.interactions ? parsedData : undefined,
+          triage: parsedData?.continuer !== undefined ? parsedData : undefined,
+        };
+
+        setMessages((prev) => [...prev, modelMessage]);
+      } else {
+        // Streaming for text responses
+        const streamResponse = await ai.models.generateContentStream({
+          model: modelToUse,
+          contents,
+          config,
         });
+
+        let fullText = "";
+        const streamingMessage: Message = { role: "model", text: "", streaming: true };
+        setMessages((prev) => [...prev, streamingMessage]);
+
+        for await (const chunk of streamResponse) {
+          fullText += chunk.text || "";
+          setMessages((prev) => {
+            const newMessages = [...prev];
+            const lastMsg = newMessages[newMessages.length - 1];
+            if (lastMsg && lastMsg.role === "model") {
+              lastMsg.text = fullText;
+            }
+            return newMessages;
+          });
+        }
+
+        // Final update to remove streaming flag
+        setMessages((prev) => {
+          const newMessages = [...prev];
+          const lastMsg = newMessages[newMessages.length - 1];
+          if (lastMsg && lastMsg.role === "model") {
+            lastMsg.streaming = false;
+          }
+          return newMessages;
+        });
+      }
+
+      // 5. Proactive Alert Logic (Background)
+      if (messages.length > 4) {
+        (async () => {
+          const patternPrompt = `L'utilisateur a posé ces questions : ${messages.filter(m => m.role === 'user').map(m => m.text).join(' | ')}. 
+          Si tu détectes une répétition ou une préoccupation persistante (ex: 3 questions sur la fièvre), génère une alerte proactive courte en JSON. Sinon retourne null.
+          Format JSON:
+          {
+            "titre": "...",
+            "message": "...",
+            "action": "consulter médecin | acheter médicament | rien",
+            "urgence": "info | attention | urgent"
+          }
+          Langue: ${detectedLang}.`;
+          
+          try {
+            const alertResponse = await ai.models.generateContent({
+              model: "gemini-3-flash-preview",
+              contents: [{ role: "user", parts: [{ text: patternPrompt }] }],
+              config: { thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } }
+            });
+            
+            const alertData = JSON.parse(alertResponse.text || "null");
+            if (alertData && alertData.titre) {
+              setMessages(prev => [...prev, { 
+                role: "model", 
+                text: `💡 **${alertData.titre}**: ${alertData.message}\n\n*${lang === 'fr' ? 'Action suggérée' : 'الإجراء المقترح'}: ${alertData.action}*`
+              }]);
+            }
+          } catch (e) {}
+        })();
       }
     } catch (error) {
       console.error("Error calling Gemini:", error);
       setMessages((prev) => [
         ...prev,
-        { role: "model", text: "Désolé, une erreur s'est produite lors de la communication avec le serveur." },
+        { role: "model", text: lang === 'fr' ? "Désolé, une erreur s'est produite lors de la communication avec le serveur." : "عذراً، حدث خطأ أثناء الاتصال بالخادم." },
       ]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleScanComplete = (details: string) => {
+  const handleScanComplete = (jsonResult: string) => {
     if (!currentConversationId) {
       setCurrentConversationId(Date.now().toString());
     }
+    
+    let parsedData: any = null;
+    try {
+      parsedData = JSON.parse(jsonResult);
+    } catch (e) {
+      console.error("Scan JSON parse error:", e);
+    }
+
+    if (!parsedData || (!parsedData.medicaments && !parsedData.observation)) {
+      setMessages(prev => [...prev, {
+        role: "model",
+        text: lang === 'fr' 
+          ? "Désolé, je n'ai pas pu analyser correctement cette ordonnance. Pourriez-vous reprendre une photo plus nette ?" 
+          : "عذراً، لم أتمكن من تحليل هذه الوصفة بشكل صحيح. هل يمكنك التقاط صورة أكثر وضوحاً؟"
+      }]);
+      return;
+    }
+
     const userMessage: Message = {
       role: "user",
       text: lang === 'fr' ? "Analyse de mon ordonnance" : "تحليل وصفتي الطبية"
     };
+    
     const modelMessage: Message = {
       role: "model",
-      text: details
+      text: lang === 'fr' ? "Voici l'analyse de votre ordonnance :" : "إليك تحليل وصفتك الطبية:",
+      prescription: parsedData.medicaments ? parsedData : undefined,
+      analysis: parsedData.observation ? parsedData : undefined
     };
+    
     setMessages(prev => [...prev, userMessage, modelMessage]);
   };
 
@@ -613,9 +1231,20 @@ export default function App() {
         </div>
 
         <div className="flex-1 overflow-y-auto px-2 py-2 space-y-1">
-          <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-blue-400/60 flex items-center gap-2">
-            <History className="w-3 h-3" />
-            {lang === 'fr' ? 'Historique' : 'السجل'}
+          <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-blue-400/60 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <History className="w-3 h-3" />
+              {lang === 'fr' ? 'Historique' : 'السجل'}
+            </div>
+            {conversations.length > 0 && (
+              <button 
+                onClick={clearAllConversations}
+                className="text-red-400 hover:text-red-600 transition-colors"
+                title={lang === 'fr' ? 'Tout effacer' : 'حذف الكل'}
+              >
+                <Trash2 className="w-3 h-3" />
+              </button>
+            )}
           </div>
           
           {conversations.length === 0 ? (
@@ -659,6 +1288,14 @@ export default function App() {
         </div>
 
         <div className="p-4 border-t border-gray-100 bg-gray-50/50">
+          <motion.a 
+            whileHover={{ x: 5 }}
+            onClick={() => setIsPrivacyOpen(true)}
+            className="flex items-center gap-3 px-3 py-2 text-xs text-gray-500 hover:text-blue-600 transition-all cursor-pointer"
+          >
+            <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+            {lang === 'fr' ? 'Confidentialité' : 'الخصوصية'}
+          </motion.a>
           <motion.a 
             whileHover={{ x: 5 }}
             href="#" 
@@ -720,11 +1357,53 @@ export default function App() {
       </header>
 
       {/* Main Content */}
-      <div className="relative z-10 flex-1 flex flex-col overflow-hidden">
+      <div className="relative z-10 flex-1 flex flex-col overflow-hidden medical-bg">
         <main className="flex-1 overflow-y-auto pt-4 pb-4 w-full">
-          {messages.length === 0 ? (
-            <div className="w-full">
-              <div className="max-w-2xl mx-auto px-6 mt-8 mb-8">
+          <AnimatePresence mode="wait">
+            {messages.length === 0 ? (
+              <motion.div 
+                key="landing"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 1.02 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                className="w-full"
+              >
+                <div className="max-w-2xl mx-auto px-6 mt-4 mb-8">
+                {/* Real-time Status Card */}
+                {!isWorkingHours() && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mb-8 p-4 bg-white/60 backdrop-blur-md border border-blue-100 rounded-2xl shadow-sm flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="relative">
+                        <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" />
+                        <div className="absolute inset-0 w-3 h-3 bg-green-500 rounded-full animate-ping opacity-20" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-blue-900">
+                          {lang === 'fr' ? "Pharmacies de garde ouvertes" : "صيدليات الحراسة مفتوحة"} · {getDayNightStatus()}
+                        </h3>
+                        <p className="text-xs text-blue-600">
+                          {nearbyCount !== null 
+                            ? (lang === 'fr' ? `${nearbyCount} pharmacies à moins de 2km de vous` : `${nearbyCount} صيدليات على بعد أقل من 2 كم منك`)
+                            : (lang === 'fr' ? "Recherche des pharmacies à proximité..." : "البحث عن الصيدليات القريبة...")}
+                        </p>
+                      </div>
+                    </div>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={triggerPharmacyFinder}
+                      className="px-3 py-1.5 bg-blue-600 text-white text-[10px] font-bold rounded-lg shadow-sm"
+                    >
+                      {lang === 'fr' ? "Voir" : "عرض"}
+                    </motion.button>
+                  </motion.div>
+                )}
+
                 <h1 className="text-xl md:text-2xl font-medium text-blue-900 mb-6">
                   {lang === 'fr' ? "Comment puis-je vous aider ?" : "كيف يمكنني مساعدتك؟"}
                 </h1>
@@ -743,6 +1422,18 @@ export default function App() {
                     {lang === 'fr' ? "Vérifier mes médicaments" : "التحقق من أدويتي"}
                   </button>
                   <button 
+                    onClick={triggerPharmacyFinder}
+                    className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100 hover:bg-slate-200 transition-all text-blue-800 text-sm font-medium shadow-sm"
+                  >
+                    {lang === 'fr' ? "Pharmacies de garde" : "صيدليات الحراسة"}
+                  </button>
+                  <button 
+                    onClick={() => setIsScannerOpen(true)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100 hover:bg-slate-200 transition-all text-blue-800 text-sm font-medium shadow-sm"
+                  >
+                    {lang === 'fr' ? "Scanner une ordonnance" : "مسح الوصفة الطبية"}
+                  </button>
+                  <button 
                     onClick={() => handleSend(lang === 'fr' ? "Interactions médicamenteuses de mon ordonnance" : "التفاعلات الدوائية لوصفتي الطبية")}
                     className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100 hover:bg-slate-200 transition-all text-blue-800 text-sm font-medium shadow-sm"
                   >
@@ -751,30 +1442,55 @@ export default function App() {
                 </div>
               </div>
               
-              <LandingSections 
-                lang={lang} 
-                onTriggerPharmacy={triggerPharmacyFinder} 
-                onTriggerScanner={() => setIsScannerOpen(true)}
-                onTriggerChecker={() => setIsCheckerOpen(true)}
-                onTriggerSearch={() => setIsSearchOpen(true)}
-              />
-            </div>
+              <Suspense fallback={<div className="h-64 flex items-center justify-center bg-gray-50"><Loader2 className="w-6 h-6 animate-spin text-blue-600" /></div>}>
+                <LandingSections 
+                  lang={lang} 
+                  onTriggerPharmacy={triggerPharmacyFinder} 
+                  onTriggerScanner={() => setIsScannerOpen(true)}
+                  onTriggerChecker={() => setIsCheckerOpen(true)}
+                  onTriggerSearch={() => setIsSearchOpen(true)}
+                />
+              </Suspense>
+            </motion.div>
           ) : (
-            <div className="flex flex-col gap-6 max-w-2xl mx-auto w-full px-6">
+            <motion.div 
+              key="chat"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex flex-col gap-8 max-w-2xl mx-auto w-full px-6 py-4"
+            >
               {messages.map((msg, idx) => (
-                <div key={idx} className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}>
+                <motion.div 
+                  key={idx} 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}
+                >
                   <div 
-                    className={`max-w-[85%] ${
+                    className={`max-w-[90%] md:max-w-[85%] ${
                       msg.role === "user" 
-                        ? "bg-blue-600 text-white rounded-xl rounded-te-sm px-4 py-3 shadow-md" 
-                        : "text-blue-900 py-2"
+                        ? "bg-blue-600 text-white rounded-2xl rounded-tr-none px-5 py-3.5 shadow-lg shadow-blue-100" 
+                        : "text-blue-900 py-2 w-full"
                     }`}
                   >
-                    <div className="text-xs md:text-sm leading-relaxed whitespace-pre-wrap font-serif prose prose-sm max-w-none prose-p:leading-relaxed prose-strong:text-blue-900 prose-strong:font-bold prose-p:text-blue-800">
+                    {msg.role === "model" && (
+                      <div className="flex items-center gap-2 mb-2 opacity-60">
+                        <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center">
+                          <Bot className="w-3 h-3 text-blue-600" />
+                        </div>
+                        <span className="text-[10px] font-bold tracking-wider uppercase">Anzar</span>
+                      </div>
+                    )}
+                    <div className={`text-sm md:text-base leading-relaxed whitespace-pre-wrap font-sans prose prose-sm max-w-none prose-p:leading-relaxed prose-strong:text-blue-900 prose-strong:font-bold prose-p:text-blue-800 ${msg.role === "user" ? "prose-invert" : ""}`}>
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>
                         {msg.text}
                       </ReactMarkdown>
                     </div>
+
+                    {msg.prescription && <PrescriptionCard data={msg.prescription} lang={lang} />}
+                    {msg.analysis && <AnalysisCard data={msg.analysis} lang={lang} />}
+                    {msg.interactions && <InteractionCard data={msg.interactions} lang={lang} />}
+                    {msg.triage && <TriageCard data={msg.triage} lang={lang} />}
                   </div>
                   
                   {msg.places && msg.places.length > 0 && (
@@ -812,20 +1528,52 @@ export default function App() {
                       )}
                     </div>
                   )}
-                </div>
+                </motion.div>
               ))}
               {isLoading && (
-                <div className="flex items-start">
-                  <div className="bg-white/80 backdrop-blur-sm rounded-xl rounded-ss-sm px-4 py-3 border border-gray-100 shadow-sm flex gap-1 items-center">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                <motion.div 
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="flex items-start gap-3"
+                >
+                  <motion.div 
+                    animate={{ scale: [1, 1.1, 1] }}
+                    transition={{ repeat: Infinity, duration: 2 }}
+                    className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0 shadow-sm"
+                  >
+                    <Bot className="w-4 h-4 text-blue-600" />
+                  </motion.div>
+                  <div className="bg-white/90 backdrop-blur-md rounded-2xl rounded-tl-none px-5 py-3 border border-blue-100 shadow-lg shadow-blue-50/50 flex flex-col gap-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">Anzar analyse</span>
+                      <div className="flex gap-1">
+                        <motion.div 
+                          animate={{ opacity: [0.3, 1, 0.3] }}
+                          transition={{ repeat: Infinity, duration: 1.5, delay: 0 }}
+                          className="w-1 h-1 bg-blue-400 rounded-full" 
+                        />
+                        <motion.div 
+                          animate={{ opacity: [0.3, 1, 0.3] }}
+                          transition={{ repeat: Infinity, duration: 1.5, delay: 0.2 }}
+                          className="w-1 h-1 bg-blue-400 rounded-full" 
+                        />
+                        <motion.div 
+                          animate={{ opacity: [0.3, 1, 0.3] }}
+                          transition={{ repeat: Infinity, duration: 1.5, delay: 0.4 }}
+                          className="w-1 h-1 bg-blue-400 rounded-full" 
+                        />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-blue-400/80 font-medium italic">
+                      {lang === 'fr' ? "Traitement de votre demande..." : "جاري معالجة طلبك..."}
+                    </p>
                   </div>
-                </div>
+                </motion.div>
               )}
               <div ref={messagesEndRef} />
-            </div>
+            </motion.div>
           )}
+          </AnimatePresence>
         </main>
 
         {/* Input Area */}
@@ -834,79 +1582,23 @@ export default function App() {
             {/* Pharmacy Bottom Sheet */}
             <AnimatePresence>
               {showPharmacySheet && (
-                <motion.div
-                  initial={{ y: "100%" }}
-                  animate={{ y: 0 }}
-                  exit={{ y: "100%" }}
-                  transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                  className="absolute bottom-full left-0 right-0 mb-4 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-30 max-h-[60vh] flex flex-col"
-                >
-                  <div className="p-4 border-b border-gray-50 flex items-center justify-between bg-gray-50/50">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${pharmacyType === 'garde' ? 'bg-green-500 animate-pulse' : 'bg-blue-500'}`} />
-                      <h3 className="font-bold text-gray-900">
-                        {pharmacyType === 'garde' 
-                          ? "Pharmacies de garde · Ouvertes maintenant 🟢" 
-                          : "Pharmacies près de vous 📍"}
-                      </h3>
-                    </div>
-                    <button 
-                      onClick={() => setShowPharmacySheet(false)}
-                      className="p-1.5 hover:bg-gray-200 rounded-full transition-colors"
-                    >
-                      <X className="w-5 h-5 text-gray-500" />
-                    </button>
-                  </div>
-                  
-                  <div className="overflow-y-auto p-4 flex flex-col gap-3">
-                    {pharmacies.length === 0 ? (
-                      <div className="py-8 text-center text-gray-500">
-                        Aucune pharmacie trouvée à proximité.
-                      </div>
-                    ) : (
-                      pharmacies.map((pharmacy) => (
-                        <div key={pharmacy.id} className="p-4 rounded-xl border border-gray-100 bg-white hover:border-gray-200 transition-all shadow-sm hover:shadow-md">
-                          <div className="flex justify-between items-start mb-2">
-                            <div className="flex items-center gap-2">
-                              <Store className="w-5 h-5 text-gray-700" />
-                              <h4 className="font-bold text-gray-900">{pharmacy.name}</h4>
-                            </div>
-                            {pharmacy.distance > 0 && (
-                              <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                                {pharmacy.distance >= 1000 
-                                  ? `${(pharmacy.distance / 1000).toFixed(1)} km` 
-                                  : `${pharmacy.distance} m`}
-                              </span>
-                            )}
-                          </div>
-                          
-                          <div className="flex flex-col gap-1.5 mb-4">
-                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                              <Clock className="w-4 h-4" />
-                              <span>{pharmacyType === 'garde' ? 'Ouvert (Garde)' : 'Ouvert'}</span>
-                            </div>
-                            {pharmacy.phone && (
-                              <div className="flex items-center gap-2 text-sm text-gray-600">
-                                <Phone className="w-4 h-4" />
-                                <a href={`tel:${pharmacy.phone}`} className="hover:text-blue-600 underline underline-offset-2">{pharmacy.phone}</a>
-                              </div>
-                            )}
-                          </div>
-                          
-                          <a 
-                            href={pharmacy.uri || `https://www.google.com/maps/dir/?api=1&destination=${pharmacy.lat},${pharmacy.lng}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="w-full py-2 md:py-2.5 bg-gray-900 text-white rounded-xl text-xs md:text-sm font-bold flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors"
-                          >
-                            <Navigation className="w-3.5 h-3.5 md:w-4 md:h-4" />
-                            Itinéraire
-                          </a>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </motion.div>
+                <>
+                  {/* Backdrop for closing on click outside */}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={() => setShowPharmacySheet(false)}
+                    className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-20"
+                  />
+                  <PharmacySheet 
+                    onClose={() => setShowPharmacySheet(false)}
+                    pharmacyType={pharmacyType}
+                    lang={lang}
+                    userCoords={userCoords}
+                    pharmacies={pharmacies}
+                  />
+                </>
               )}
             </AnimatePresence>
 
@@ -991,16 +1683,6 @@ export default function App() {
               )}
             </AnimatePresence>
 
-            <div className="mb-4 text-center">
-              <h2 className="text-xl md:text-2xl font-medium text-blue-900">
-                {lang === 'fr' ? (
-                  <>Assistant pharmaceutique <span className="font-bold text-blue-800">rapide</span> et <span className="font-bold text-blue-800">gratuit</span></>
-                ) : (
-                  <>مساعد صيدلي <span className="font-bold text-blue-800">سريع</span> و <span className="font-bold text-blue-800">مجاني</span></>
-                )}
-              </h2>
-            </div>
-
             <PromptInputBox 
               placeholder={lang === 'fr' ? "Décrivez vos symptômes ou posez une question..." : "صف الأعراض أو اطرح سؤالاً..."}
               onSend={handleSend}
@@ -1016,39 +1698,80 @@ export default function App() {
           </div>
         </div>
       </div>
-      <AnimatePresence>
-        {isScannerOpen && (
-          <PrescriptionScanner 
-            lang={lang}
-            onClose={() => setIsScannerOpen(false)}
-            onScanComplete={handleScanComplete}
-          />
-        )}
-      </AnimatePresence>
+      <Suspense fallback={
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/80 backdrop-blur-sm">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        </div>
+      }>
+        <AnimatePresence>
+          {isScannerOpen && (
+            <PrescriptionScanner 
+              lang={lang}
+              onClose={() => setIsScannerOpen(false)}
+              onScanComplete={handleScanComplete}
+            />
+          )}
+        </AnimatePresence>
 
-      <AnimatePresence>
-        {isSearchOpen && (
-          <MedicineSearch 
-            lang={lang}
-            onClose={() => setIsSearchOpen(false)}
-          />
-        )}
-      </AnimatePresence>
+        <AnimatePresence>
+          {isSearchOpen && (
+            <MedicineSearch 
+              lang={lang}
+              onClose={() => setIsSearchOpen(false)}
+            />
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {isPrivacyOpen && (
+            <PrivacyPolicy 
+              lang={lang}
+              onClose={() => setIsPrivacyOpen(false)}
+            />
+          )}
+        </AnimatePresence>
+      </Suspense>
 
       {/* Interaction Checker Modal */}
       <AnimatePresence>
         {isCheckerOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <>
+            {/* Backdrop */}
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-2xl shadow-2xl border border-blue-100 w-full max-w-md overflow-hidden flex flex-col"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => {
+                setIsCheckerOpen(false);
+                setCheckerResult(null);
+                setCheckerInput("");
+              }}
+              className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-[2px]"
+            />
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              drag="y"
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={0.2}
+              onDragEnd={(_, info) => {
+                if (info.offset.y > 100) {
+                  setIsCheckerOpen(false);
+                  setCheckerResult(null);
+                  setCheckerInput("");
+                }
+              }}
+              className="fixed bottom-0 left-0 right-0 z-[110] bg-white rounded-t-[2.5rem] shadow-2xl border-t border-blue-100 max-h-[85vh] flex flex-col overflow-hidden"
             >
-              <div className="p-4 border-b border-blue-50 flex items-center justify-between bg-blue-50/30">
+              {/* Drag Handle */}
+              <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mt-4 mb-2 shrink-0" />
+
+              <div className="p-4 border-b border-blue-50 flex items-center justify-between bg-blue-50/30 shrink-0">
                 <div className="flex items-center gap-2">
                   <Activity className="w-5 h-5 text-blue-600" />
-                  <h3 className="font-bold text-blue-900">
+                  <h3 className="font-serif font-bold text-blue-900 text-lg">
                     {lang === 'fr' ? "Vérifier mes médicaments" : "التحقق من الأدوية"}
                   </h3>
                 </div>
@@ -1058,14 +1781,14 @@ export default function App() {
                     setCheckerResult(null);
                     setCheckerInput("");
                   }}
-                  className="p-1.5 hover:bg-blue-100 rounded-full transition-colors"
+                  className="p-2 bg-blue-50 hover:bg-blue-100 rounded-full transition-colors shadow-sm"
                 >
-                  <X className="w-5 h-5 text-blue-400" />
+                  <X className="w-5 h-5 text-blue-600" />
                 </button>
               </div>
               
-              <div className="p-6 flex flex-col gap-4">
-                <p className="text-xs text-blue-700 leading-relaxed">
+              <div className="p-6 flex flex-col gap-6 overflow-y-auto">
+                <p className="text-sm text-blue-700/80 leading-relaxed font-medium">
                   {lang === 'fr' 
                     ? "Entrez les noms des médicaments séparés par une virgule pour vérifier les interactions connues." 
                     : "أدخل أسماء الأدوية مفصولة بفاصلة للتحقق من التفاعلات المعروفة."}
@@ -1077,45 +1800,52 @@ export default function App() {
                     value={checkerInput}
                     onChange={(e) => setCheckerInput(e.target.value)}
                     placeholder={lang === 'fr' ? "Ex: Aspirine, Ibuprofène" : "مثال: أسبرين، إيبوبروفين"}
-                    className="w-full px-4 py-3 rounded-xl border border-blue-100 focus:border-blue-300 focus:ring-0 text-sm placeholder:text-blue-300"
+                    className="w-full px-5 py-4 rounded-2xl border border-blue-100 focus:border-blue-300 focus:ring-4 focus:ring-blue-500/5 text-base placeholder:text-blue-300 transition-all bg-blue-50/30"
                   />
                 </div>
 
                 <button
                   onClick={checkInteractions}
                   disabled={isChecking || !checkerInput.trim()}
-                  className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold text-sm shadow-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+                  className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold text-base shadow-lg shadow-blue-200 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-3"
                 >
                   {isChecking ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 className="w-5 h-5 animate-spin" />
                   ) : (
-                    <Check className="w-4 h-4" />
+                    <Check className="w-5 h-5" />
                   )}
-                  {lang === 'fr' ? "Vérifier" : "تحقق"}
+                  {lang === 'fr' ? "Vérifier maintenant" : "تحقق الآن"}
                 </button>
 
                 {checkerResult && (
                   <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={`p-4 rounded-xl border ${
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className={`p-5 rounded-2xl border-2 ${
                       checkerResult.status === 'red' ? 'bg-red-50 border-red-100 text-red-800' :
                       checkerResult.status === 'yellow' ? 'bg-yellow-50 border-yellow-100 text-yellow-800' :
                       'bg-green-50 border-green-100 text-green-800'
-                    } text-xs font-medium leading-relaxed`}
+                    } text-sm font-medium leading-relaxed shadow-sm`}
                   >
-                    {checkerResult.text}
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className={`w-5 h-5 shrink-0 ${
+                        checkerResult.status === 'red' ? 'text-red-500' :
+                        checkerResult.status === 'yellow' ? 'text-yellow-500' :
+                        'text-green-500'
+                      }`} />
+                      {checkerResult.text}
+                    </div>
                   </motion.div>
                 )}
-              </div>
-              
-              <div className="p-4 bg-gray-50 border-t border-gray-100 text-[10px] text-gray-400 italic text-center">
-                {lang === 'fr' 
-                  ? "Source : OpenFDA & IA. Ne remplace pas l'avis d'un professionnel." 
-                  : "المصدر: OpenFDA والذكاء الاصطناعي. لا يغني عن رأي المختص."}
+
+                <div className="mt-4 p-4 bg-gray-50 rounded-2xl border border-gray-100 text-[11px] text-gray-500 italic text-center leading-relaxed">
+                  {lang === 'fr' 
+                    ? "Source : OpenFDA & IA. Cette analyse est fournie à titre informatif et ne remplace pas l'avis d'un professionnel de santé." 
+                    : "المصدر: OpenFDA والذكاء الاصطناعي. هذا التحليل مقدم لأغراض إعلامية ولا يغني عن رأي أخصائي الرعاية الصحية."}
+                </div>
               </div>
             </motion.div>
-          </div>
+          </>
         )}
       </AnimatePresence>
     </div>

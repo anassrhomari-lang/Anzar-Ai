@@ -7,6 +7,12 @@
 }
 
 @layer base {
+  .medical-bg {
+    background-color: #fbfdff;
+    background-image: radial-gradient(#e0e7ff 0.5px, transparent 0.5px);
+    background-size: 24px 24px;
+  }
+
   html {
     font-size: 14px;
   }
