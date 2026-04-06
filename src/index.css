@@ -8,9 +8,51 @@
 
 @layer base {
   .medical-bg {
-    background-color: #fbfdff;
-    background-image: radial-gradient(#e0e7ff 0.5px, transparent 0.5px);
-    background-size: 24px 24px;
+    background-color: #fcfdfe;
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.08) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, rgba(59, 130, 246, 0.08) 0px, transparent 50%),
+      radial-gradient(at 50% 100%, rgba(167, 139, 250, 0.08) 0px, transparent 50%),
+      radial-gradient(#e2e8f0 0.8px, transparent 0.8px),
+      url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    background-size: 100% 100%, 100% 100%, 100% 100%, 32px 32px, 200px 200px;
+    background-blend-mode: normal, normal, normal, normal, overlay;
+    background-attachment: fixed;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .medical-bg::before,
+  .medical-bg::after {
+    content: "";
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    border-radius: 50%;
+    filter: blur(120px);
+    z-index: -1;
+    opacity: 0.4;
+    animation: blob-float 20s infinite alternate ease-in-out;
+  }
+
+  .medical-bg::before {
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
+    top: -10%;
+    left: -10%;
+  }
+
+  .medical-bg::after {
+    background: radial-gradient(circle, rgba(167, 139, 250, 0.15) 0%, transparent 70%);
+    bottom: -10%;
+    right: -10%;
+    animation-delay: -10s;
+  }
+
+  @keyframes blob-float {
+    0% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(10%, 10%) scale(1.1); }
+    66% { transform: translate(-5%, 15%) scale(0.9); }
+    100% { transform: translate(0, 0) scale(1); }
   }
 
   html {

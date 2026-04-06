@@ -70,153 +70,136 @@ export const LandingSections: React.FC<LandingSectionsProps> = ({ lang, onTrigge
   };
 
   return (
-    <div className={`flex flex-col items-center w-full max-w-3xl mx-auto mt-20 md:mt-32 pb-12 gap-16 text-center px-4`} dir={isRtl ? 'rtl' : 'ltr'}>
+    <div className={`flex flex-col items-center w-full max-w-5xl mx-auto mt-8 md:mt-16 pb-32 gap-20 md:gap-32 text-center px-4 md:px-8`} dir={isRtl ? 'rtl' : 'ltr'}>
       
-      {/* Section 1 */}
-      <section className="flex flex-col items-center w-full pt-12 md:pt-20">
-        <h2 className="text-2xl md:text-3xl font-serif text-blue-900 mb-4 leading-tight">
+      {/* Section 1: Hero-like intro */}
+      <section className="flex flex-col items-center w-full pt-8 max-w-3xl">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50/80 text-blue-600 text-[10px] md:text-xs font-bold uppercase tracking-widest mb-8 border border-blue-100 shadow-sm backdrop-blur-sm"
+        >
+          <Sparkles className="w-3.5 h-3.5 md:w-4 md:h-4" />
+          {lang === 'fr' ? "Intelligence Artificielle Médicale" : "الذكاء الاصطناعي الطبي"}
+        </motion.div>
+        <h2 className="text-4xl md:text-6xl lg:text-7xl font-bold text-slate-900 mb-8 leading-[1.05] tracking-tight">
           {renderText(text.title1)}
         </h2>
-        <p className="text-blue-700 text-sm md:text-base max-w-xl leading-relaxed mb-12">
+        <p className="text-slate-500 text-lg md:text-xl lg:text-2xl max-w-2xl leading-relaxed mb-10 font-medium">
           {renderText(text.desc1)}
         </p>
       </section>
 
-      {/* Section 2 */}
-      <section className="flex flex-col items-center w-full">
-        <h2 className="text-2xl md:text-3xl font-serif text-blue-900 mb-4 leading-tight">
-          {renderText(text.title2)}
-        </h2>
-        <p className="text-blue-700 text-sm md:text-base max-w-xl leading-relaxed mb-12">
-          {renderText(text.desc2)}
-        </p>
+      {/* Section 2: Chat Experience */}
+      <section className="flex flex-col items-center w-full max-w-4xl">
+        <div className="bg-white/40 backdrop-blur-2xl border border-white/40 rounded-3xl p-8 md:p-16 w-full shadow-2xl shadow-blue-100/50 relative overflow-hidden group">
+          {/* Decorative background elements */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_-20%,rgba(59,130,246,0.1),transparent)] pointer-events-none" />
+          <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#3b82f6 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
+          
+          <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-transparent via-blue-500/30 to-transparent animate-pulse" />
+          
+          <div className="absolute -top-10 -right-10 w-40 h-40 bg-blue-400/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-indigo-400/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="bg-white/50 backdrop-blur-md border border-blue-50/50 rounded-2xl p-6 md:p-8 w-full max-w-2xl shadow-inner relative">
-          <div className="flex flex-col gap-4">
-            <div className={`bg-blue-50/30 border border-blue-50/50 rounded-xl p-4 shadow-sm max-w-[85%] rounded-es-sm self-start text-start`}>
-              <p className="text-blue-900 font-medium text-sm">{renderText(text.chat1)}</p>
-            </div>
-            <div className={`bg-white/80 border border-blue-50/50 rounded-xl p-4 shadow-sm max-w-[85%] relative rounded-ee-sm self-end text-start`}>
-              <p className="text-blue-900 font-medium text-sm">{renderText(text.chat2)}</p>
-              <div className={`absolute bottom-0 w-8 h-8 rounded-full overflow-hidden border-2 border-blue-100 shadow-sm ${isRtl ? '-right-10' : '-left-10'}`}>
+          <div className="absolute bottom-4 right-6 opacity-10 pointer-events-none select-none">
+            <span className="text-2xl font-black tracking-tighter text-blue-600">ANZAR</span>
+          </div>
+
+          <div className="flex flex-col gap-8 relative z-10">
+            <motion.div 
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className={`bg-white/90 border border-blue-50/50 rounded-3xl rounded-tl-none p-5 md:p-6 shadow-sm max-w-[90%] md:max-w-[75%] self-start text-start backdrop-blur-sm`}
+            >
+              <p className="text-slate-800 font-semibold text-base md:text-lg leading-relaxed">{renderText(text.chat1)}</p>
+            </motion.div>
+            
+            <motion.div 
+              initial={{ opacity: 0, x: 30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+              className={`bg-gradient-to-br from-blue-600 to-indigo-700 border border-blue-400/20 rounded-3xl rounded-tr-none p-5 md:p-6 shadow-xl shadow-blue-400/30 max-w-[90%] md:max-w-[75%] relative self-end text-start`}
+            >
+              <p className="text-white font-semibold text-base md:text-lg leading-relaxed">{renderText(text.chat2)}</p>
+              <div className={`absolute -bottom-3 w-10 h-10 md:w-12 md:h-12 rounded-2xl overflow-hidden border-2 border-white shadow-xl ${isRtl ? '-right-12 md:-right-16' : '-left-12 md:-left-16'}`}>
                 <img src="https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?q=80&w=100&auto=format&fit=crop" alt="User" className="w-full h-full object-cover"/>
               </div>
-            </div>
-            <div className={`bg-blue-50/30 border border-blue-50/50 rounded-xl p-4 shadow-sm max-w-[85%] rounded-es-sm self-start text-start`}>
-              <p className="text-blue-900 font-medium text-sm">{renderText(text.chat3)}</p>
-            </div>
-            <div className={`bg-white/80 border border-blue-50/50 rounded-xl p-4 shadow-sm max-w-[85%] relative rounded-ee-sm self-end text-start`}>
-              <p className="text-blue-900 font-medium text-sm">{renderText(text.chat4)}</p>
-              <div className={`absolute bottom-0 w-8 h-8 rounded-full overflow-hidden border-2 border-blue-100 shadow-sm ${isRtl ? '-right-10' : '-left-10'}`}>
-                <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=100&auto=format&fit=crop" alt="User" className="w-full h-full object-cover"/>
-              </div>
-            </div>
+            </motion.div>
+
+            <motion.div 
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.4 }}
+              className={`bg-white/90 border border-blue-50/50 rounded-3xl rounded-tl-none p-5 md:p-6 shadow-sm max-w-[90%] md:max-w-[75%] self-start text-start backdrop-blur-sm`}
+            >
+              <p className="text-slate-800 font-semibold text-base md:text-lg leading-relaxed">{renderText(text.chat3)}</p>
+            </motion.div>
           </div>
         </div>
       </section>
 
       {/* Section 3 */}
-      <section className="flex flex-col items-center w-full">
-        <div className="flex -space-x-3 mb-6">
-          <div className="w-12 h-12 rounded-full border-2 border-white bg-white/60 backdrop-blur-md flex items-center justify-center shadow-sm text-blue-500">
-            <Pill className="w-6 h-6" />
-          </div>
-          <div className="w-12 h-12 rounded-full border-2 border-white bg-white/60 backdrop-blur-md flex items-center justify-center shadow-sm text-emerald-500">
-            <Store className="w-6 h-6" />
-          </div>
-          <div className="w-12 h-12 rounded-full border-2 border-white bg-white/60 backdrop-blur-md flex items-center justify-center shadow-sm text-rose-500">
-            <Activity className="w-6 h-6" />
-          </div>
-          <div className="w-12 h-12 rounded-full border-2 border-white bg-white/60 backdrop-blur-md flex items-center justify-center shadow-sm text-amber-500">
-            <Thermometer className="w-6 h-6" />
-          </div>
-          <div className="w-12 h-12 rounded-full border-2 border-white bg-white/60 backdrop-blur-md flex items-center justify-center shadow-sm text-indigo-500">
-            <Plus className="w-6 h-6" />
-          </div>
+      <section className="flex flex-col items-center w-full max-w-4xl">
+        <div className="flex -space-x-4 md:-space-x-6 mb-12">
+          {[Pill, Store, Activity, Thermometer, Plus].map((Icon, i) => (
+            <motion.div 
+              key={i}
+              initial={{ opacity: 0, y: 20, rotate: -10 }}
+              whileInView={{ opacity: 1, y: 0, rotate: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.1, type: "spring" }}
+              whileHover={{ y: -10, scale: 1.1, zIndex: 10 }}
+              className="w-16 h-16 md:w-20 md:h-20 rounded-3xl border-4 border-white bg-white/80 backdrop-blur-md flex items-center justify-center shadow-xl text-blue-600 cursor-pointer transition-all"
+            >
+              <Icon className="w-8 h-8 md:w-10 md:h-10" />
+            </motion.div>
+          ))}
         </div>
 
-        <h2 className="text-2xl md:text-3xl font-serif text-blue-900 mb-4 leading-tight max-w-xl">
+        <h2 className="text-3xl md:text-5xl lg:text-6xl font-bold text-slate-900 mb-8 leading-[1.1] max-w-3xl">
           {renderText(text.title3)}
         </h2>
 
-        <div className="inline-flex items-center gap-2 px-2.5 md:px-3 py-1 md:py-1.5 rounded-full border border-blue-50/50 bg-blue-50/30 text-blue-500 text-[10px] md:text-xs font-medium mb-6 shadow-sm">
-          <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+        <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full border border-blue-100 bg-blue-50/50 text-blue-600 text-xs md:text-sm font-bold mb-10 shadow-sm backdrop-blur-sm">
+          <div className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse shadow-[0_0_10px_rgba(59,130,246,0.5)]"></div>
           {renderText(text.badge)}
         </div>
 
-        <p className="text-blue-700 text-sm md:text-base max-w-xl leading-relaxed mb-10">
+        <p className="text-slate-500 text-lg md:text-xl lg:text-2xl max-w-2xl leading-relaxed mb-16 font-medium">
           {renderText(text.desc3)}
         </p>
 
-        <div className="bg-white/80 backdrop-blur-md rounded-3xl p-6 md:p-8 w-full max-w-xl shadow-sm border border-blue-50/50 text-start">
-          <div className="flex flex-col gap-6">
-            {/* 1. Rechercher un médicament */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+          {[
+            { icon: Search, title: text.feat5Title, desc: text.feat5Desc, trigger: onTriggerSearch, color: 'blue' },
+            { icon: Store, title: text.feat2Title, desc: text.feat2Desc, trigger: onTriggerPharmacy, color: 'emerald' },
+            { icon: ClipboardList, title: text.feat3Title, desc: text.feat3Desc, trigger: onTriggerScanner, color: 'violet' },
+            { icon: Activity, title: text.feat4Title, desc: text.feat4Desc, trigger: onTriggerChecker, color: 'indigo' }
+          ].map((feat, i) => (
             <motion.div 
-              whileHover={{ scale: 1.02, x: 5 }}
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.1 }}
+              whileHover={{ y: -8, backgroundColor: 'rgba(255, 255, 255, 0.95)', boxShadow: "0 20px 40px -15px rgba(0,0,0,0.1)" }}
               whileTap={{ scale: 0.98 }}
-              className="flex items-start gap-4 pb-6 border-b border-blue-50 cursor-pointer hover:bg-blue-50/50 transition-colors rounded-2xl -mx-2 px-2 py-2"
-              onClick={onTriggerSearch}
+              className="flex flex-col items-start gap-6 p-8 bg-white/60 backdrop-blur-xl border border-white/40 rounded-2xl shadow-sm hover:shadow-2xl transition-all cursor-pointer text-start group"
+              onClick={feat.trigger}
             >
-              <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0 text-blue-600">
-                <Search className="w-5 h-5" />
+              <div className={`w-14 h-14 rounded-2xl bg-${feat.color}-50 text-${feat.color}-600 flex items-center justify-center group-hover:bg-${feat.color}-600 group-hover:text-white transition-all duration-500 shadow-sm`}>
+                <feat.icon className="w-7 h-7" />
               </div>
-              <div className="text-start w-full">
-                <h4 className="font-serif font-bold text-blue-900 text-base md:text-lg">{text.feat5Title}</h4>
-                <p className="text-blue-600/70 text-sm md:text-base leading-relaxed">{text.feat5Desc}</p>
+              <div>
+                <h4 className="font-bold text-slate-900 text-xl md:text-2xl mb-2 group-hover:text-blue-900 transition-colors">{feat.title}</h4>
+                <p className="text-slate-500 text-base md:text-lg leading-relaxed group-hover:text-slate-600 transition-colors">{feat.desc}</p>
               </div>
             </motion.div>
-
-            {/* 2. Pharmacies de garde */}
-            <motion.div 
-              whileHover={{ scale: 1.02, x: 5 }}
-              whileTap={{ scale: 0.98 }}
-              className="flex items-start gap-4 pb-6 border-b border-blue-50 cursor-pointer hover:bg-blue-50/50 transition-colors rounded-2xl -mx-2 px-2 py-2"
-              onClick={onTriggerPharmacy}
-            >
-              <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0 text-blue-600">
-                <Store className="w-5 h-5" />
-              </div>
-              <div className="text-start w-full">
-                <h4 className="font-serif font-bold text-blue-900 text-base md:text-lg">{text.feat2Title}</h4>
-                <p className="text-blue-600/70 text-sm md:text-base leading-relaxed">{text.feat2Desc}</p>
-              </div>
-            </motion.div>
-
-            {/* 3. Scanner une ordonnance */}
-            <motion.div 
-              whileHover={{ scale: 1.02, x: 5 }}
-              whileTap={{ scale: 0.98 }}
-              className="flex items-start gap-4 pb-6 border-b border-blue-50 cursor-pointer hover:bg-blue-50/50 transition-colors rounded-2xl -mx-2 px-2 py-2"
-              onClick={onTriggerScanner}
-            >
-              <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0 text-blue-600">
-                <ClipboardList className="w-5 h-5" />
-              </div>
-              <div className="text-start w-full">
-                <h4 className="font-serif font-bold text-blue-900 text-base md:text-lg">{text.feat3Title}</h4>
-                <p className="text-blue-600/70 text-sm md:text-base leading-relaxed">{text.feat3Desc}</p>
-              </div>
-            </motion.div>
-
-            {/* 4. Interactions médicaments */}
-            <motion.div 
-              whileHover={{ scale: 1.02, x: 5 }}
-              whileTap={{ scale: 0.98 }}
-              className="flex items-start gap-4 cursor-pointer hover:bg-blue-50/50 transition-colors rounded-2xl -mx-2 px-2 py-2"
-              onClick={onTriggerChecker}
-            >
-              <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0 text-blue-600">
-                <div className="flex items-center -space-x-1">
-                  <Pill className="w-4 h-4" />
-                  <AlertCircle className="w-3.5 h-3.5 text-amber-500 fill-amber-500/10" />
-                </div>
-              </div>
-              <div className="text-start w-full">
-                <h4 className="font-serif font-bold text-blue-900 text-base md:text-lg">{text.feat4Title}</h4>
-                <p className="text-blue-600/70 text-sm md:text-base leading-relaxed">{text.feat4Desc}</p>
-              </div>
-            </motion.div>
-          </div>
+          ))}
         </div>
       </section>
 

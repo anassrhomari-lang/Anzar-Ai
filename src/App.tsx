@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useRef, useEffect, useCallback, Suspense, lazy } from "react";
-import { PanelLeft, X, User, Bot, Home, MapPin, Navigation, Phone, Clock, ExternalLink, Loader2, Store, MessageSquare, Plus, Trash2, History, Activity, Check, AlertCircle, Camera, Mic, StopCircle } from "lucide-react";
+import { PanelLeft, X, User, Bot, Home, MapPin, Navigation, Phone, Clock, ExternalLink, Loader2, Store, MessageSquare, Plus, Trash2, History, Activity, Check, AlertCircle, Camera, Mic, StopCircle, Search, Scan } from "lucide-react";
 import { PromptInputBox } from "./components/PromptInputBox";
 import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import { PlaceCard } from "./components/PlaceCard";
@@ -122,19 +122,19 @@ const PharmacySheet = ({
       onDragEnd={(_, info) => {
         if (info.offset.y > 100) onClose();
       }}
-      className="absolute bottom-full left-0 right-0 mb-4 bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden z-30 max-h-[85vh] flex flex-col"
+      className="absolute bottom-full left-0 right-0 md:left-1/2 md:-translate-x-1/2 mb-4 bg-white/60 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/40 overflow-hidden z-30 max-h-[85vh] w-full md:max-w-3xl flex flex-col"
     >
       {/* Drag Handle & Header */}
       <div 
         onPointerDown={(e) => dragControls.start(e)}
         className="flex flex-col cursor-grab active:cursor-grabbing touch-none shrink-0"
       >
-        <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mt-3 mb-1" />
+        <div className="w-12 h-1.5 bg-slate-300/50 rounded-full mx-auto mt-4 mb-2" />
         
-        <div className="p-4 border-b border-gray-50 flex items-center justify-between bg-gray-50/50">
-          <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${pharmacyType === 'garde' ? 'bg-green-500 animate-pulse' : 'bg-blue-500'}`} />
-            <h3 className="font-serif font-bold text-blue-900">
+        <div className="p-5 border-b border-white/20 flex items-center justify-between bg-white/40">
+          <div className="flex items-center gap-3">
+            <div className={`w-3 h-3 rounded-full shadow-sm ${pharmacyType === 'garde' ? 'bg-emerald-500 animate-pulse' : 'bg-blue-500'}`} />
+            <h3 className="text-lg font-bold text-slate-900">
               {pharmacyType === 'garde' 
                 ? (lang === 'fr' ? "Pharmacies de garde" : "صيدليات الحراسة")
                 : (lang === 'fr' ? "Pharmacies à proximité" : "الصيدليات القريبة")}
@@ -142,9 +142,9 @@ const PharmacySheet = ({
           </div>
           <button 
             onClick={onClose}
-            className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors shadow-sm"
+            className="p-2.5 bg-white/80 hover:bg-white rounded-2xl transition-all shadow-sm border border-slate-100"
           >
-            <X className="w-5 h-5 text-gray-600" />
+            <X className="w-5 h-5 text-slate-600" />
           </button>
         </div>
       </div>
@@ -177,12 +177,14 @@ const PharmacySheet = ({
                   delay: index * 0.05,
                   ease: "easeOut"
                 }}
-                className="p-4 rounded-2xl border border-gray-100 bg-white hover:border-gray-200 transition-all shadow-sm hover:shadow-md"
+                className="p-5 rounded-2xl border border-white/40 bg-white/40 backdrop-blur-md hover:bg-white/60 transition-all shadow-sm hover:shadow-xl group"
               >
-                <div className="flex justify-between items-start mb-2">
-                  <div className="flex items-center gap-2">
-                    <Store className="w-5 h-5 text-blue-600" />
-                    <h4 className="font-serif font-bold text-blue-900 text-base">{pharmacy.name}</h4>
+                <div className="flex justify-between items-start mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all duration-300">
+                      <Store className="w-5 h-5" />
+                    </div>
+                    <h4 className="font-bold text-slate-900 text-base">{pharmacy.name}</h4>
                   </div>
                   {pharmacy.distance > 0 && (
                     <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
@@ -219,9 +221,9 @@ const PharmacySheet = ({
                   href={pharmacy.uri || `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(pharmacy.name)}&destination_place_id=${pharmacy.id.toString().startsWith('ai-') ? '' : pharmacy.id}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors shadow-sm"
+                  className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-blue-200 transition-all"
                 >
-                  <Navigation className="w-3.5 h-3.5" />
+                  <Navigation className="w-4 h-4" />
                   {lang === 'fr' ? 'Itinéraire' : 'الاتجاهات'}
                 </a>
               </motion.div>
@@ -1468,40 +1470,40 @@ export default function App() {
       </div>
 
       {/* Header */}
-      <header className="relative z-10 flex items-center justify-between px-4 py-2 bg-transparent shrink-0">
-        <div className="flex items-center gap-3">
+      <header className="sticky top-0 z-50 flex items-center justify-between px-4 md:px-8 lg:px-12 py-3 md:py-4 bg-white/40 backdrop-blur-xl border-b border-white/20 shrink-0">
+        <div className="flex items-center gap-2 md:gap-4">
           <motion.button 
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
+            whileHover={{ scale: 1.05, backgroundColor: 'rgba(239, 246, 255, 0.8)' }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => setIsMenuOpen(true)}
-            className="p-1.5 -ms-1.5 text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+            className="p-2 text-blue-600 hover:bg-blue-50/80 rounded-xl transition-all border border-transparent hover:border-blue-100 shadow-sm hover:shadow-md"
           >
-            <PanelLeft className={`w-5 h-5 ${lang === 'ar' ? 'rotate-180' : ''}`} />
+            <PanelLeft className={`w-5 h-5 md:w-6 md:h-6 ${lang === 'ar' ? 'rotate-180' : ''}`} />
           </motion.button>
           <motion.button 
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
+            whileHover={{ scale: 1.05, backgroundColor: 'rgba(239, 246, 255, 0.8)' }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => setMessages([])}
-            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+            className="p-2 text-blue-600 hover:bg-blue-50/80 rounded-xl transition-all border border-transparent hover:border-blue-100 shadow-sm hover:shadow-md"
             title={lang === 'fr' ? 'Accueil' : 'الرئيسية'}
           >
-            <Home className="w-5 h-5" />
+            <Home className="w-5 h-5 md:w-6 md:h-6" />
           </motion.button>
           <motion.button 
             whileHover={{ opacity: 0.8, x: 2 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => setMessages([])}
-            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+            className="flex items-center gap-2 hover:opacity-80 transition-opacity ml-1"
           >
-            <div className="text-lg md:text-xl font-bold tracking-tight text-blue-900">anzar</div>
+            <div className="text-xl md:text-3xl font-bold tracking-tighter bg-gradient-to-br from-blue-600 to-indigo-700 bg-clip-text text-transparent">anzar</div>
           </motion.button>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <motion.button 
-            whileHover={{ scale: 1.1, rotate: 5 }}
-            whileTap={{ scale: 0.9 }}
+            whileHover={{ scale: 1.05, rotate: 5 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => setLang(lang === 'fr' ? 'ar' : 'fr')}
-            className="w-7 h-7 rounded-full bg-blue-100 hover:bg-blue-200 flex items-center justify-center text-xs font-medium text-blue-700 transition-colors shadow-sm"
+            className="px-3 md:px-4 py-1.5 md:py-2 rounded-xl bg-white/80 border border-blue-100 flex items-center justify-center text-xs md:text-sm font-bold text-blue-700 transition-all shadow-sm hover:shadow-md"
           >
             {lang === 'fr' ? 'AR' : 'FR'}
           </motion.button>
@@ -1521,27 +1523,27 @@ export default function App() {
                 transition={{ duration: 0.3, ease: "easeInOut" }}
                 className="w-full"
               >
-                <div className="max-w-2xl mx-auto px-6 mt-4 mb-8">
+                <div className="max-w-3xl mx-auto px-4 md:px-8 mt-4 mb-8">
                 {/* Real-time Status Card */}
                 {!isWorkingHours() && (
                   <motion.div 
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="mb-8 p-4 bg-white/60 backdrop-blur-md border border-blue-100 rounded-2xl shadow-sm flex items-center justify-between"
+                    className="mb-8 p-4 md:p-6 bg-white/60 backdrop-blur-md border border-blue-100 rounded-2xl shadow-sm flex items-center justify-between gap-4"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="relative">
+                      <div className="relative shrink-0">
                         <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" />
                         <div className="absolute inset-0 w-3 h-3 bg-green-500 rounded-full animate-ping opacity-20" />
                       </div>
                       <div>
-                        <h3 className="text-sm font-bold text-blue-900">
+                        <h3 className="text-sm md:text-base font-bold text-blue-900 leading-tight">
                           {lang === 'fr' ? "Pharmacies de garde ouvertes" : "صيدليات الحراسة مفتوحة"} · {getDayNightStatus()}
                         </h3>
-                        <p className="text-xs text-blue-600">
+                        <p className="text-xs md:text-sm text-blue-600 mt-0.5">
                           {nearbyCount !== null 
-                            ? (lang === 'fr' ? `${nearbyCount} pharmacies à moins de 2km de vous` : `${nearbyCount} صيدليات على بعد أقل من 2 كم منك`)
-                            : (lang === 'fr' ? "Recherche des pharmacies à proximité..." : "البحث عن الصيدليات القريبة...")}
+                            ? (lang === 'fr' ? `${nearbyCount} pharmacies à moins de 2km` : `${nearbyCount} صيدليات على بعد أقل من 2 كم`)
+                            : (lang === 'fr' ? "Recherche à proximité..." : "البحث عن الصيدليات القريبة...")}
                         </p>
                       </div>
                     </div>
@@ -1549,48 +1551,76 @@ export default function App() {
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={triggerPharmacyFinder}
-                      className="px-3 py-1.5 bg-blue-600 text-white text-[10px] font-bold rounded-lg shadow-sm"
+                      className="px-4 py-2 bg-blue-600 text-white text-xs md:text-sm font-bold rounded-xl shadow-lg shadow-blue-200 shrink-0"
                     >
                       {lang === 'fr' ? "Voir" : "عرض"}
                     </motion.button>
                   </motion.div>
                 )}
 
-                <h1 className="text-xl md:text-2xl font-medium text-blue-900 mb-6">
-                  {lang === 'fr' ? "Comment puis-je vous aider ?" : "كيف يمكنني مساعدتك؟"}
+                <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold tracking-tight text-slate-900 mb-2">
+                  {lang === 'fr' ? "Bonjour," : "مرحباً،"}
                 </h1>
+                <p className="text-xl md:text-2xl text-slate-500 font-medium mb-10">
+                  {lang === 'fr' ? "Comment puis-je vous aider aujourd'hui ?" : "كيف يمكنني مساعدتك اليوم؟"}
+                </p>
 
-                <div className="flex flex-col gap-2.5 items-start">
-                  <button 
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-12">
+                  <motion.button 
+                    whileHover={{ y: -4, backgroundColor: 'rgba(255, 255, 255, 0.9)' }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={() => setIsSearchOpen(true)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100 hover:bg-slate-200 transition-all text-blue-800 text-sm font-medium shadow-sm"
+                    className="flex flex-col items-start gap-3 p-4 md:p-6 rounded-2xl bg-white/60 backdrop-blur-md border border-blue-100/50 shadow-sm transition-all text-left group h-full"
                   >
-                    {lang === 'fr' ? "Rechercher un médicament" : "البحث عن دواء"}
-                  </button>
-                  <button 
+                    <div className="p-3 rounded-2xl bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                      <Search className="w-5 h-5 md:w-6 md:h-6" />
+                    </div>
+                    <span className="text-sm md:text-base font-bold text-slate-800 leading-tight">
+                      {lang === 'fr' ? "Rechercher un médicament" : "البحث عن دواء"}
+                    </span>
+                  </motion.button>
+
+                  <motion.button 
+                    whileHover={{ y: -4, backgroundColor: 'rgba(255, 255, 255, 0.9)' }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={() => setIsCheckerOpen(true)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100 hover:bg-slate-200 transition-all text-blue-800 text-sm font-medium shadow-sm"
+                    className="flex flex-col items-start gap-3 p-4 md:p-6 rounded-2xl bg-white/60 backdrop-blur-md border border-indigo-100/50 shadow-sm transition-all text-left group h-full"
                   >
-                    {lang === 'fr' ? "Vérifier mes médicaments" : "التحقق من أدويتي"}
-                  </button>
-                  <button 
+                    <div className="p-3 rounded-2xl bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                      <Activity className="w-5 h-5 md:w-6 md:h-6" />
+                    </div>
+                    <span className="text-sm md:text-base font-bold text-slate-800 leading-tight">
+                      {lang === 'fr' ? "Vérifier mes médicaments" : "التحقق من أدويتي"}
+                    </span>
+                  </motion.button>
+
+                  <motion.button 
+                    whileHover={{ y: -4, backgroundColor: 'rgba(255, 255, 255, 0.9)' }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={triggerPharmacyFinder}
-                    className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100 hover:bg-slate-200 transition-all text-blue-800 text-sm font-medium shadow-sm"
+                    className="flex flex-col items-start gap-3 p-4 md:p-6 rounded-2xl bg-white/60 backdrop-blur-md border border-emerald-100/50 shadow-sm transition-all text-left group h-full"
                   >
-                    {lang === 'fr' ? "Pharmacies de garde" : "صيدليات الحراسة"}
-                  </button>
-                  <button 
+                    <div className="p-3 rounded-2xl bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                      <MapPin className="w-5 h-5 md:w-6 md:h-6" />
+                    </div>
+                    <span className="text-sm md:text-base font-bold text-slate-800 leading-tight">
+                      {lang === 'fr' ? "Pharmacies de garde" : "صيدليات الحراسة"}
+                    </span>
+                  </motion.button>
+
+                  <motion.button 
+                    whileHover={{ y: -4, backgroundColor: 'rgba(255, 255, 255, 0.9)' }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={() => setIsScannerOpen(true)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100 hover:bg-slate-200 transition-all text-blue-800 text-sm font-medium shadow-sm"
+                    className="flex flex-col items-start gap-3 p-4 md:p-6 rounded-2xl bg-white/60 backdrop-blur-md border border-violet-100/50 shadow-sm transition-all text-left group h-full"
                   >
-                    {lang === 'fr' ? "Scanner une ordonnance" : "مسح الوصفة الطبية"}
-                  </button>
-                  <button 
-                    onClick={() => handleSend(lang === 'fr' ? "Interactions médicamenteuses de mon ordonnance" : "التفاعلات الدوائية لوصفتي الطبية")}
-                    className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100 hover:bg-slate-200 transition-all text-blue-800 text-sm font-medium shadow-sm"
-                  >
-                    {lang === 'fr' ? "Interactions médicamenteuses de mon ordonnance" : "التفاعلات الدوائية لوصفتي الطبية"}
-                  </button>
+                    <div className="p-3 rounded-2xl bg-violet-50 text-violet-600 group-hover:bg-violet-600 group-hover:text-white transition-colors">
+                      <Scan className="w-5 h-5 md:w-6 md:h-6" />
+                    </div>
+                    <span className="text-sm md:text-base font-bold text-slate-800 leading-tight">
+                      {lang === 'fr' ? "Scanner une ordonnance" : "مسح الوصفة الطبية"}
+                    </span>
+                  </motion.button>
                 </div>
               </div>
               
@@ -1609,28 +1639,28 @@ export default function App() {
               key="chat"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="flex flex-col gap-8 max-w-2xl mx-auto w-full px-6 py-4"
+              className="flex flex-col gap-8 max-w-4xl mx-auto w-full px-4 md:px-12 py-6"
             >
               {messages.map((msg, idx) => (
                 <motion.div 
                   key={idx} 
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}
                 >
                   <div 
-                    className={`max-w-[90%] md:max-w-[85%] ${
+                    className={`max-w-[92%] md:max-w-[80%] ${
                       msg.role === "user" 
-                        ? "bg-blue-600 text-white rounded-2xl rounded-tr-none px-5 py-3.5 shadow-lg shadow-blue-100" 
-                        : "text-blue-900 py-2 w-full"
+                        ? "bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-2xl rounded-tr-none px-6 py-4 shadow-xl shadow-blue-200/50" 
+                        : "bg-white/60 backdrop-blur-xl border border-white/40 rounded-2xl rounded-tl-none px-6 py-5 shadow-sm w-full"
                     }`}
                   >
                     {msg.role === "model" && (
-                      <div className="flex items-center gap-2 mb-2 opacity-60">
-                        <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center">
-                          <Bot className="w-3 h-3 text-blue-600" />
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-6 h-6 rounded-xl bg-blue-600 flex items-center justify-center shadow-sm">
+                          <Bot className="w-3.5 h-3.5 text-white" />
                         </div>
-                        <span className="text-[10px] font-bold tracking-wider uppercase">Anzar</span>
+                        <span className="text-[11px] font-bold tracking-widest uppercase text-blue-600/80">Anzar AI</span>
                       </div>
                     )}
                     <div className={`text-sm md:text-base leading-relaxed whitespace-pre-wrap font-sans prose prose-sm max-w-none prose-p:leading-relaxed prose-strong:text-blue-900 prose-strong:font-bold prose-p:text-blue-800 ${msg.role === "user" ? "prose-invert" : ""}`}>
@@ -1730,7 +1760,7 @@ export default function App() {
 
         {/* Input Area */}
         <div className="absolute bottom-0 left-0 right-0 z-20 p-4 md:p-6 w-full bg-white/30 backdrop-blur-xl border-t border-white/20 shadow-[0_-20px_50px_-10px_rgba(0,0,0,0.08)]">
-          <div className="max-w-2xl mx-auto relative">
+          <div className="max-w-4xl mx-auto relative">
             {/* Pharmacy Bottom Sheet */}
             <AnimatePresence>
               {showPharmacySheet && (
@@ -1952,7 +1982,7 @@ export default function App() {
                     value={checkerInput}
                     onChange={(e) => setCheckerInput(e.target.value)}
                     placeholder={lang === 'fr' ? "Ex: Aspirine, Ibuprofène" : "مثال: أسبرين، إيبوبروفين"}
-                    className="w-full px-6 py-5 rounded-[2rem] border border-blue-100 focus:border-blue-300 focus:ring-4 focus:ring-blue-500/5 text-base placeholder:text-blue-300 transition-all bg-blue-50/30 pr-28"
+                    className="w-full px-6 py-5 rounded-2xl border border-blue-100 focus:border-blue-300 focus:ring-4 focus:ring-blue-500/5 text-base placeholder:text-blue-300 transition-all bg-blue-50/30 pr-28"
                   />
                   <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                     <input 

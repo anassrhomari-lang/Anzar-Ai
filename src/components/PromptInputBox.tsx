@@ -34,7 +34,7 @@ interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement
 const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({ className, ...props }, ref) => (
   <textarea
     className={cn(
-      "flex w-full rounded-md border-none bg-transparent px-3 py-2.5 text-sm md:text-base text-blue-900 placeholder:text-blue-400 focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-50 min-h-[44px] resize-none scrollbar-thin scrollbar-thumb-blue-100 scrollbar-track-transparent hover:scrollbar-thumb-blue-200",
+      "flex w-full rounded-md border-none bg-transparent px-3 py-3 text-base md:text-lg text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-50 min-h-[44px] resize-none",
       className
     )}
     ref={ref}
@@ -328,7 +328,7 @@ const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
           <div
             ref={ref}
             className={cn(
-              "rounded-2xl p-2 transition-all duration-300 relative z-0 backdrop-blur-xl border border-white/40 shadow-[0_-12px_40px_-15px_rgba(0,0,0,0.1)]",
+              "rounded-3xl p-3 md:p-4 transition-all duration-500 relative z-0 backdrop-blur-2xl border border-white/40 shadow-[0_-15px_50px_-10px_rgba(0,0,0,0.12)] bg-white/10",
               className
             )}
             onDragOver={onDragOver}
@@ -626,7 +626,7 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
         isLoading={isLoading}
         onSubmit={handleSubmit}
         className={cn(
-          "w-full bg-white/40 border-none shadow-none rounded-2xl p-4 transition-all duration-300",
+          "w-full bg-white/40 border border-white/20 shadow-inner rounded-2xl p-4 transition-all duration-300",
           isRecording && "bg-white/60",
           className
         )}
@@ -636,7 +636,7 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
-        <div className="flex flex-col min-h-[80px] justify-between">
+        <div className="flex flex-col min-h-[100px] justify-between">
           <div
             className={cn(
               "transition-all duration-300 flex-1",
@@ -651,7 +651,7 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
                   ? (lang === 'fr' ? "Trouver un médecin spécialiste" : "البحث عن طبيب متخصص")
                   : placeholder || (lang === 'fr' ? "Décrivez vos symptômes ou posez une question..." : "صف الأعراض أو اطرح سؤالاً...")
               }
-              className="text-sm md:text-base bg-transparent px-1 min-h-[44px]"
+              className="text-base md:text-xl bg-transparent px-2 min-h-[50px] font-medium"
             />
           </div>
 
@@ -663,33 +663,33 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
             />
           )}
 
-          <div className="flex items-center justify-between mt-3 px-1">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between mt-4 px-1">
+            <div className="flex items-center gap-2 md:gap-3">
               <PromptInputAction tooltip={lang === 'fr' ? "Scanner une ordonnance (IA)" : "مسح الوصفة (ذكاء اصطناعي)"}>
                 <button 
                   onClick={onTriggerScanner} 
-                  className="flex items-center gap-2 h-9 px-4 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-all text-[11px] font-bold border border-blue-100 shadow-sm"
+                  className="flex items-center gap-2 h-10 md:h-12 px-4 md:px-6 bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-100 transition-all text-[11px] md:text-xs font-bold border border-blue-100 shadow-sm active:scale-95"
                 >
-                  <Camera className="h-4 w-4" />
-                  <span className="hidden md:inline">{lang === 'fr' ? "Scanner" : "مسح"}</span>
+                  <Camera className="h-4 w-4 md:h-5 md:w-5" />
+                  <span className="hidden sm:inline">{lang === 'fr' ? "Scanner" : "مسح"}</span>
                 </button>
               </PromptInputAction>
 
               <PromptInputAction tooltip={lang === 'fr' ? "Rechercher un médicament" : "البحث عن دواء"}>
                 <button 
                   onClick={onTriggerSearch} 
-                  className="flex items-center justify-center w-9 h-9 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-all border border-blue-100 shadow-sm"
+                  className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-100 transition-all border border-blue-100 shadow-sm active:scale-95"
                 >
-                  <Pill className="h-5 w-5" />
+                  <Pill className="h-5 w-5 md:h-6 md:w-6" />
                 </button>
               </PromptInputAction>
 
               <PromptInputAction tooltip={lang === 'fr' ? "Joindre un document" : "إرفاق مستند"}>
                 <button 
                   onClick={() => uploadInputRef.current?.click()} 
-                  className="flex items-center justify-center w-9 h-9 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-all border border-blue-100 shadow-sm"
+                  className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-100 transition-all border border-blue-100 shadow-sm active:scale-95"
                 >
-                  <Paperclip className="h-5 w-5" />
+                  <Paperclip className="h-5 w-5 md:h-6 md:w-6" />
                   <input ref={uploadInputRef} type="file" className="hidden" onChange={(e) => {
                     if (e.target.files && e.target.files.length > 0) processFile(e.target.files[0]);
                     if (e.target) e.target.value = "";
@@ -704,29 +704,29 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
                     handleToggleChange("pharmacy");
                   }}
                   className={cn(
-                    "flex items-center justify-center w-9 h-9 rounded-xl transition-all border shadow-sm",
+                    "flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-2xl transition-all border shadow-sm active:scale-95",
                     showPharmacy 
                       ? "bg-blue-600 text-white border-blue-600" 
                       : "bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100"
                   )}
                 >
-                  <MapPin className="h-5 w-5" />
+                  <MapPin className="h-5 w-5 md:h-6 md:w-6" />
                 </button>
               </PromptInputAction>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 md:gap-3">
               <PromptInputAction tooltip={lang === 'fr' ? "Message vocal" : "رسالة صوتية"}>
                 <button
                   onClick={() => isRecording ? stopRecording() : startRecording()}
                   className={cn(
-                    "flex items-center justify-center w-9 h-9 rounded-xl transition-all border shadow-sm",
+                    "flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-2xl transition-all border shadow-sm active:scale-95",
                     isRecording 
                       ? "bg-red-500 text-white border-red-500 animate-pulse" 
                       : "bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100"
                   )}
                 >
-                  {isRecording ? <StopCircle className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+                  {isRecording ? <StopCircle className="h-5 w-5 md:h-6 md:w-6" /> : <Mic className="h-5 w-5 md:h-6 md:w-6" />}
                 </button>
               </PromptInputAction>
 
@@ -735,13 +735,13 @@ export const PromptInputBox = React.forwardRef((props: PromptInputBoxProps, ref:
                   onClick={handleSubmit}
                   disabled={!hasContent || !consentChecked || isLoading}
                   className={cn(
-                    "w-9 h-9 rounded-xl flex items-center justify-center transition-all border shadow-sm",
+                    "w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center transition-all border shadow-sm active:scale-95",
                     hasContent && consentChecked 
                       ? "bg-blue-600 text-white border-blue-600 shadow-md" 
                       : "bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed"
                   )}
                 >
-                  <Send className="h-4 w-4" />
+                  <Send className="h-4 w-4 md:h-5 md:w-5" />
                 </button>
               </PromptInputAction>
             </div>
