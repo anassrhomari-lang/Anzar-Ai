@@ -12,7 +12,7 @@ interface LandingSectionsProps {
 
 const t = {
   fr: {
-    title1: "Assistant pharmaceutique **rapide** et **gratuit**",
+    title1: "ANZAR AI",
     desc1: "Votre vie privée est notre **priorité**. Échanges **100% anonymes**. Trouvez un **médicament** ou une **pharmacie de garde** en quelques secondes.",
     title2: "Comment puis-je vous aider ?",
     desc2: "Trouvez un médicament en stock près de chez vous. Consultez les pharmacies de garde et obtenez des conseils pharmaceutiques instantanés.",
@@ -33,7 +33,7 @@ const t = {
     feat5Desc: "Prix AMM · Génériques · Stock proche"
   },
   ar: {
-    title1: "مساعد صيدلاني **سريع** و**مجاني**",
+    title1: "ANZAR AI",
     desc1: "خصوصيتك هي **أولويتنا**. محادثات **مجهولة تماماً**. ابحث عن **دواء** أو **صيدلية حراسة** في ثوانٍ.",
     title2: "كيف يمكنني مساعدتك؟",
     desc2: "ابحث عن دواء متوفر بالقرب منك. استشر صيدليات الحراسة واحصل على نصائح صيدلانية فورية.",
