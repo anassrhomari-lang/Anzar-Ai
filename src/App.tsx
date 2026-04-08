@@ -1380,14 +1380,14 @@ export default function App() {
           </motion.button>
         </div>
         
-        <div className="p-4">
+        <div className="p-6">
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={startNewChat}
-            className="w-full py-2.5 md:py-3 px-4 bg-blue-600 text-white rounded-xl font-bold text-xs md:text-sm flex items-center justify-center gap-2 shadow-md hover:bg-blue-700 transition-colors"
+            className="w-full py-3.5 md:py-4 px-6 bg-[#00356B] text-white rounded-[1.25rem] font-bold text-sm md:text-base flex items-center justify-center gap-3 shadow-xl shadow-blue-900/20 hover:bg-[#002a54] transition-all"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-5 h-5" />
             {lang === 'fr' ? 'Nouvelle discussion' : 'محادثة جديدة'}
           </motion.button>
         </div>
@@ -1420,13 +1420,13 @@ export default function App() {
               <div
                 key={conv.id}
                 onClick={() => loadConversation(conv)}
-                className={`group relative flex items-center gap-3 px-3 py-3 rounded-xl cursor-pointer transition-all ${
+                className={`group relative flex items-center gap-4 px-4 py-4 rounded-2xl cursor-pointer transition-all ${
                   currentConversationId === conv.id 
-                    ? "bg-blue-50 text-blue-700 border border-blue-100" 
-                    : "hover:bg-gray-50 text-gray-600"
+                    ? "bg-blue-50/50 text-[#00356B] border border-blue-100/50 shadow-sm" 
+                    : "hover:bg-gray-50/50 text-gray-600"
                 }`}
               >
-                <MessageSquare className={`w-4 h-4 shrink-0 ${currentConversationId === conv.id ? "text-blue-600" : "text-gray-400"}`} />
+                <MessageSquare className={`w-4 h-4 shrink-0 ${currentConversationId === conv.id ? "text-[#00356B]" : "text-gray-400"}`} />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium truncate">{conv.title}</p>
                   <p className="text-[9px] opacity-60">
@@ -1453,9 +1453,9 @@ export default function App() {
           <motion.a 
             whileHover={{ x: 5 }}
             onClick={() => setIsPrivacyOpen(true)}
-            className="flex items-center gap-3 px-3 py-2 text-xs text-gray-500 hover:text-blue-600 transition-all cursor-pointer"
+            className="flex items-center gap-4 px-4 py-3 text-xs text-gray-500 hover:text-[#00356B] transition-all cursor-pointer"
           >
-            <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+            <div className="w-2 h-2 rounded-full bg-[#00356B]/40" />
             {lang === 'fr' ? 'Confidentialité' : 'الخصوصية'}
           </motion.a>
           <motion.a 
@@ -1478,21 +1478,21 @@ export default function App() {
       </div>
 
       {/* Header */}
-      <header className="sticky top-0 z-50 flex items-center justify-between px-4 md:px-8 lg:px-12 py-3 md:py-4 bg-white/40 backdrop-blur-xl border-b border-white/20 shrink-0">
-        <div className="flex items-center gap-2 md:gap-4">
+      <header className="sticky top-0 z-50 flex items-center justify-between px-6 md:px-12 lg:px-20 py-4 md:py-6 bg-white/30 backdrop-blur-3xl border-b border-white/20 shrink-0">
+        <div className="flex items-center gap-4 md:gap-6">
           <motion.button 
-            whileHover={{ scale: 1.05, backgroundColor: 'rgba(239, 246, 255, 0.8)' }}
+            whileHover={{ scale: 1.05, backgroundColor: 'rgba(255, 255, 255, 0.6)' }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setIsMenuOpen(true)}
-            className="p-2 text-blue-600 hover:bg-blue-50/80 rounded-xl transition-all border border-transparent hover:border-blue-100 shadow-sm hover:shadow-md"
+            className="p-3 text-[#00356B] bg-white/40 backdrop-blur-xl rounded-2xl transition-all border border-white/40 shadow-lg shadow-blue-900/5 hover:shadow-xl"
           >
             <PanelLeft className={`w-5 h-5 md:w-6 md:h-6 ${lang === 'ar' ? 'rotate-180' : ''}`} />
           </motion.button>
           <motion.button 
-            whileHover={{ scale: 1.05, backgroundColor: 'rgba(239, 246, 255, 0.8)' }}
+            whileHover={{ scale: 1.05, backgroundColor: 'rgba(255, 255, 255, 0.6)' }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setMessages([])}
-            className="p-2 text-blue-600 hover:bg-blue-50/80 rounded-xl transition-all border border-transparent hover:border-blue-100 shadow-sm hover:shadow-md"
+            className="p-3 text-[#00356B] bg-white/40 backdrop-blur-xl rounded-2xl transition-all border border-white/40 shadow-lg shadow-blue-900/5 hover:shadow-xl"
             title={lang === 'fr' ? 'Accueil' : 'الرئيسية'}
           >
             <Home className="w-5 h-5 md:w-6 md:h-6" />
@@ -1512,12 +1512,12 @@ export default function App() {
             <div className="text-xl md:text-3xl font-bold tracking-tighter text-[#00356B]">Anzar</div>
           </motion.button>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           <motion.button 
             whileHover={{ scale: 1.05, rotate: 5 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setLang(lang === 'fr' ? 'ar' : 'fr')}
-            className="px-3 md:px-4 py-1.5 md:py-2 rounded-xl bg-white/80 border border-blue-100 flex items-center justify-center text-xs md:text-sm font-bold text-blue-700 transition-all shadow-sm hover:shadow-md"
+            className="px-4 md:px-6 py-2 md:py-2.5 rounded-2xl bg-white/60 backdrop-blur-xl border border-white/40 flex items-center justify-center text-xs md:text-sm font-bold text-[#00356B] transition-all shadow-lg shadow-blue-900/5 hover:shadow-xl"
           >
             {lang === 'fr' ? 'AR' : 'FR'}
           </motion.button>

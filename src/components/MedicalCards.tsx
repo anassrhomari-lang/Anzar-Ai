@@ -7,9 +7,9 @@ export const PrescriptionCard = ({ data, lang }: { data: any, lang: 'fr' | 'ar' 
     <motion.div 
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="w-full bg-white/60 backdrop-blur-xl border border-white/40 rounded-3xl shadow-2xl shadow-blue-100/30 overflow-hidden my-6"
+      className="w-full bg-white/40 backdrop-blur-2xl border border-white/40 rounded-[2.5rem] shadow-2xl shadow-blue-900/5 overflow-hidden my-10"
     >
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-5 md:p-6 text-white flex items-center justify-between">
+      <div className="bg-[#00356B] p-6 md:p-10 text-white flex items-center justify-between">
         <div className="flex items-center gap-3">
           <motion.div 
             animate={{ scale: [1, 1.2, 1] }}
@@ -35,29 +35,29 @@ export const PrescriptionCard = ({ data, lang }: { data: any, lang: 'fr' | 'ar' 
           </div>
         </div>
       </div>
-      <div className="p-5 md:p-8 flex flex-col gap-4 md:gap-6">
+      <div className="p-8 md:p-12 flex flex-col gap-6 md:gap-8">
         {data.medicaments.map((med: any, idx: number) => (
-          <div key={idx} className="p-4 md:p-6 bg-white/40 rounded-2xl border border-white/40 shadow-sm hover:shadow-md transition-all group">
-            <div className="flex items-center justify-between mb-3">
-              <span className="font-bold text-slate-900 text-base md:text-lg group-hover:text-blue-700 transition-colors">{med.nom}</span>
-              <span className="text-[10px] md:text-xs px-3 py-1 bg-blue-50 text-blue-700 rounded-full font-bold uppercase tracking-wider">{med.dosage}</span>
+          <div key={idx} className="p-6 md:p-8 bg-white/40 backdrop-blur-md rounded-3xl border border-white/40 shadow-sm hover:shadow-xl transition-all group">
+            <div className="flex items-center justify-between mb-4">
+              <span className="font-bold text-slate-900 text-lg md:text-xl group-hover:text-[#00356B] transition-colors">{med.nom}</span>
+              <span className="text-[10px] md:text-xs px-4 py-1.5 bg-blue-50/50 text-[#00356B] rounded-full font-bold uppercase tracking-wider border border-blue-100/50">{med.dosage}</span>
             </div>
-            <div className="grid grid-cols-2 gap-4 text-xs md:text-sm mb-4">
-              <div className="flex items-center gap-2 text-slate-600 font-medium">
-                <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                  <Clock className="w-4 h-4" />
+            <div className="grid grid-cols-2 gap-6 text-sm md:text-base mb-6">
+              <div className="flex items-center gap-3 text-slate-600 font-medium">
+                <div className="w-9 h-9 rounded-xl bg-blue-50/50 text-[#00356B] flex items-center justify-center shrink-0 border border-blue-100/50">
+                  <Clock className="w-5 h-5" />
                 </div>
                 <span>{med.duree}</span>
               </div>
-              <div className="flex items-center gap-2 text-slate-600 font-medium">
-                <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-                  <Activity className="w-4 h-4" />
+              <div className="flex items-center gap-3 text-slate-600 font-medium">
+                <div className="w-9 h-9 rounded-xl bg-indigo-50/50 text-indigo-700 flex items-center justify-center shrink-0 border border-indigo-100/50">
+                  <Activity className="w-5 h-5" />
                 </div>
                 <span>{med.posologie}</span>
               </div>
             </div>
-            <div className="p-3 bg-blue-50/30 rounded-xl border border-blue-100/30 mb-3">
-              <p className="text-xs md:text-sm text-blue-900 font-medium italic leading-relaxed">"{med.indication_simple}"</p>
+            <div className="p-4 bg-blue-50/30 rounded-2xl border border-blue-100/20 mb-4">
+              <p className="text-sm md:text-base text-[#00356B] font-medium italic leading-relaxed">"{med.indication_simple}"</p>
             </div>
             {med.precautions && (
               <div className="flex items-start gap-2.5 text-[10px] md:text-xs text-amber-700 bg-amber-50/50 p-3 rounded-2xl border border-amber-100/50">
