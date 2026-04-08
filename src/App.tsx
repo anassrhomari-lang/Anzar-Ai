@@ -857,23 +857,28 @@ export default function App() {
         const servers = [
           'https://overpass-api.de/api/interpreter',
           'https://overpass.kumi.systems/api/interpreter',
-          'https://overpass.nchc.org.tw/api/interpreter'
+          'https://overpass.nchc.org.tw/api/interpreter',
+          'https://overpass.osm.ch/api/interpreter'
         ];
 
         for (const server of servers) {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout per server
+          const timeoutId = setTimeout(() => controller.abort(), 12000); // Increased to 12s timeout
 
           try {
-            const response = await fetch(`${server}?data=[out:json];node["amenity"="pharmacy"](around:2000,${lat},${lng});out count;`, {
+            // Use nwr (node, way, relation) to be more comprehensive
+            const query = `[out:json][timeout:25];nwr["amenity"="pharmacy"](around:2000,${lat},${lng});out count;`;
+            const response = await fetch(`${server}?data=${encodeURIComponent(query)}`, {
               signal: controller.signal
             });
             
             clearTimeout(timeoutId);
 
             if (!response.ok) {
-              if (response.status === 504 || response.status === 429) {
+              if (response.status === 504 || response.status === 429 || response.status === 503) {
                 console.warn(`Overpass server ${server} failed with ${response.status}, trying next...`);
+                // Wait 1s before trying next server if it was a rate limit or timeout
+                await new Promise(resolve => setTimeout(resolve, 1000));
                 continue;
               }
               throw new Error(`HTTP error! status: ${response.status}`);
@@ -885,23 +890,26 @@ export default function App() {
             }
 
             const data = await response.json();
-            const count = data.elements?.[0]?.tags?.total || data.elements?.length || 0;
+            // Overpass count result structure: elements[0].tags.total or elements[0].count
+            const count = data.elements?.[0]?.tags?.total || data.elements?.[0]?.count || data.elements?.length || 0;
             setNearbyCount(Number(count));
             return; // Success!
           } catch (e: any) {
             clearTimeout(timeoutId);
             if (e.name === 'AbortError') {
               console.warn(`Overpass server ${server} timed out, trying next...`);
-              continue;
+            } else {
+              console.warn(`Overpass server ${server} error:`, e.message);
             }
-            console.warn(`Overpass server ${server} error:`, e.message);
+            // Wait a bit before next server
+            await new Promise(resolve => setTimeout(resolve, 500));
             continue;
           }
         }
         
         // If all servers fail
         console.error("All Overpass servers failed to fetch count");
-        setNearbyCount(0); // Fallback to 0 instead of null to stop loading state
+        setNearbyCount(0); // Fallback to 0 to stop loading state
       };
 
       fetchCount();
