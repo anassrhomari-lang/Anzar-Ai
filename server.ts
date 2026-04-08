@@ -13,7 +13,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Initialize Firebase Admin
-let firebaseConfig;
+let firebaseConfig: any;
 try {
   firebaseConfig = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'firebase-applet-config.json'), 'utf8'));
 } catch (e) {
@@ -22,7 +22,10 @@ try {
 }
 
 // In Cloud Run, initializeApp() with no arguments uses the default service account and project
-const adminApp = admin.initializeApp();
+// We MUST pass the projectId from our config to use the correct Firebase project
+const adminApp = admin.initializeApp({
+  projectId: firebaseConfig.projectId,
+});
 
 // Try to get the database from config, fallback to (default)
 const databaseId = firebaseConfig.firestoreDatabaseId || '(default)';
@@ -59,9 +62,12 @@ async function startServer() {
       try {
         snapshot = await tryQuery(db);
       } catch (error: any) {
-        // If permission denied on named database, try (default)
-        if (error.message?.includes("PERMISSION_DENIED") && databaseId !== '(default)') {
-          console.warn(`Permission denied on ${databaseId}, trying (default) database...`);
+        // If permission denied or database not found on named database, try (default)
+        const isNotFoundError = error.message?.includes("NOT_FOUND") || error.code === 5;
+        const isPermissionError = error.message?.includes("PERMISSION_DENIED") || error.code === 7;
+        
+        if ((isPermissionError || isNotFoundError) && databaseId !== '(default)') {
+          console.warn(`Error ${error.code} on ${databaseId}, trying (default) database...`);
           const defaultDb = getFirestore(adminApp, '(default)');
           snapshot = await tryQuery(defaultDb);
           // If successful, update the global db for future requests

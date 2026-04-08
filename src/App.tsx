@@ -21,6 +21,7 @@ import remarkGfm from "remark-gfm";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
 
 import { PrescriptionCard, AnalysisCard, InteractionCard, TriageCard } from "./components/MedicalCards";
+import { MedicineAutocomplete } from "./components/MedicineAutocomplete";
 
 interface Message {
   role: "user" | "model";
@@ -625,6 +626,59 @@ export default function App() {
       }
 
       // Use Google Places API
+      try {
+        // Try the new Places API (v3.56+)
+        if (window.google && window.google.maps && (window.google.maps as any).importLibrary) {
+          const { Place, SearchNearbyRankPreference } = await (google.maps as any).importLibrary("places");
+          const request = {
+            fields: ["displayName", "location", "id", "businessStatus", "formattedAddress", "rating", "userRatingCount", "photos"],
+            locationRestriction: { center: { lat, lng }, radius: 2000 },
+            includedPrimaryTypes: ["pharmacy"],
+            maxResultCount: 20,
+            rankPreference: SearchNearbyRankPreference.POPULARITY,
+          };
+          
+          const { places } = await Place.searchNearby(request);
+          
+          if (places && places.length > 0) {
+            const mappedResults = places.map((place: any) => {
+              const pLat = place.location.lat();
+              const pLng = place.location.lng();
+              
+              const R = 6371e3; // metres
+              const φ1 = lat * Math.PI/180;
+              const φ2 = pLat * Math.PI/180;
+              const Δφ = (pLat-lat) * Math.PI/180;
+              const Δλ = (pLng-lng) * Math.PI/180;
+              const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                        Math.cos(φ1) * Math.cos(φ2) *
+                        Math.sin(Δλ/2) * Math.sin(Δλ/2);
+              const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+              const d = R * c; // in metres
+
+              return {
+                id: place.id,
+                name: place.displayName || (lang === 'fr' ? "Pharmacie sans nom" : "صيدلية بدون اسم"),
+                lat: pLat,
+                lng: pLng,
+                distance: Math.round(d),
+                address: place.formattedAddress || null,
+                rating: place.rating,
+                user_ratings_total: place.userRatingCount,
+                photo: place.photos?.[0]?.getURI() || null,
+              };
+            }).sort((a: any, b: any) => a.distance - b.distance);
+
+            setPharmacies(mappedResults);
+            setShowPharmacySheet(true);
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn("New Places API failed, falling back to legacy", e);
+      }
+
+      // Legacy fallback (will still trigger warning but ensures functionality if new API is not enabled)
       const dummyDiv = document.createElement('div');
       const service = new google.maps.places.PlacesService(dummyDiv);
       
@@ -756,8 +810,25 @@ export default function App() {
         const lng = userCoords.lng;
 
         // Try Google Maps first if available
-        if (window.google && window.google.maps && window.google.maps.places) {
+        if (window.google && window.google.maps) {
           try {
+            // Try the new Places API (v3.56+)
+            if ((window.google.maps as any).importLibrary) {
+              const { Place } = await (google.maps as any).importLibrary("places");
+              const request = {
+                locationRestriction: { center: { lat, lng }, radius: 2000 },
+                includedPrimaryTypes: ["pharmacy"],
+                maxResultCount: 20,
+              };
+              
+              const { places } = await Place.searchNearby(request);
+              if (places) {
+                setNearbyCount(places.length);
+                return;
+              }
+            }
+
+            // Legacy fallback
             const dummyDiv = document.createElement('div');
             const service = new google.maps.places.PlacesService(dummyDiv);
             service.nearbySearch({
@@ -783,37 +854,54 @@ export default function App() {
       };
 
       const fetchOverpassCount = async (lat: number, lng: number) => {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout
+        const servers = [
+          'https://overpass-api.de/api/interpreter',
+          'https://overpass.kumi.systems/api/interpreter',
+          'https://overpass.nchc.org.tw/api/interpreter'
+        ];
 
-        try {
-          const response = await fetch(`https://overpass-api.de/api/interpreter?data=[out:json];node["amenity"="pharmacy"](around:2000,${lat},${lng});out count;`, {
-            signal: controller.signal
-          });
-          
-          clearTimeout(timeoutId);
+        for (const server of servers) {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout per server
 
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          
-          const contentType = response.headers.get("content-type");
-          if (!contentType || !contentType.includes("application/json")) {
-            throw new Error("Not a JSON response");
-          }
+          try {
+            const response = await fetch(`${server}?data=[out:json];node["amenity"="pharmacy"](around:2000,${lat},${lng});out count;`, {
+              signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
 
-          const data = await response.json();
-          const count = data.elements?.[0]?.tags?.total || data.elements?.length || 0;
-          setNearbyCount(Number(count));
-        } catch (e: any) {
-          clearTimeout(timeoutId);
-          if (e.name === 'AbortError') {
-            console.warn("Overpass count fetch timed out");
-          } else {
-            console.error("Status card count fetch failed", e);
+            if (!response.ok) {
+              if (response.status === 504 || response.status === 429) {
+                console.warn(`Overpass server ${server} failed with ${response.status}, trying next...`);
+                continue;
+              }
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const contentType = response.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+              throw new Error("Not a JSON response");
+            }
+
+            const data = await response.json();
+            const count = data.elements?.[0]?.tags?.total || data.elements?.length || 0;
+            setNearbyCount(Number(count));
+            return; // Success!
+          } catch (e: any) {
+            clearTimeout(timeoutId);
+            if (e.name === 'AbortError') {
+              console.warn(`Overpass server ${server} timed out, trying next...`);
+              continue;
+            }
+            console.warn(`Overpass server ${server} error:`, e.message);
+            continue;
           }
-          setNearbyCount(0); // Fallback to 0 to stop retrying
         }
+        
+        // If all servers fail
+        console.error("All Overpass servers failed to fetch count");
+        setNearbyCount(0); // Fallback to 0 instead of null to stop loading state
       };
 
       fetchCount();
@@ -1991,14 +2079,23 @@ export default function App() {
                 </p>
                 
                 <div className="relative">
-                  <input
-                    type="text"
+                  <MedicineAutocomplete 
                     value={checkerInput}
-                    onChange={(e) => setCheckerInput(e.target.value)}
+                    onChange={setCheckerInput}
+                    onSelect={(medicine) => {
+                      // Append the medicine name to the input if it's not already there
+                      const currentInput = checkerInput.trim();
+                      if (!currentInput) {
+                        setCheckerInput(medicine.nom);
+                      } else if (!currentInput.toLowerCase().includes(medicine.nom.toLowerCase())) {
+                        setCheckerInput(currentInput + ", " + medicine.nom);
+                      }
+                    }}
                     placeholder={lang === 'fr' ? "Ex: Aspirine, Ibuprofène" : "مثال: أسبرين، إيبوبروفين"}
-                    className="w-full px-6 py-5 rounded-2xl border border-blue-100 focus:border-blue-300 focus:ring-4 focus:ring-blue-500/5 text-base placeholder:text-blue-300 transition-all bg-blue-50/30 pr-28"
+                    lang={lang}
+                    inputClassName="w-full px-6 py-5 rounded-2xl border border-blue-100 focus:border-[#00356B] focus:ring-4 focus:ring-[#00356B]/5 text-base placeholder:text-blue-300 transition-all bg-blue-50/30 pr-28"
                   />
-                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 z-10">
                     <input 
                       type="file" 
                       accept="image/*" 
@@ -2034,7 +2131,7 @@ export default function App() {
                 <button
                   onClick={checkInteractions}
                   disabled={isChecking || !checkerInput.trim()}
-                  className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold text-base shadow-lg shadow-blue-200 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-3"
+                  className="w-full py-4 bg-[#00356B] text-white rounded-2xl font-bold text-base shadow-lg shadow-blue-200 hover:bg-[#002a55] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-3"
                 >
                   {isChecking ? (
                     <Loader2 className="w-5 h-5 animate-spin" />

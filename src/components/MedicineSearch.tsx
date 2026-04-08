@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Search, X, Pill, ExternalLink, Loader2, AlertCircle, ChevronRight, Beaker, Tag, Info, DollarSign, Layers, Activity } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { GoogleGenAI, ThinkingLevel } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
+import { MedicineAutocomplete } from './MedicineAutocomplete';
 
 interface Medicine {
   name: string;
@@ -113,11 +114,10 @@ export const MedicineSearch: React.FC<MedicineSearchProps> = ({ onClose, lang })
                 Données : ${JSON.stringify(mappedData)}`;
 
                 const translationResponse = await ai.models.generateContent({
-                  model: "gemini-3-flash-preview",
+                  model: "gemini-2.0-flash",
                   contents: translationPrompt,
                   config: { 
-                    responseMimeType: "application/json",
-                    thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
+                    responseMimeType: "application/json"
                   }
                 });
                 
@@ -165,12 +165,10 @@ export const MedicineSearch: React.FC<MedicineSearchProps> = ({ onClose, lang })
       Réponds UNIQUEMENT avec le JSON.`;
 
       const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-2.0-flash",
         contents: prompt,
         config: {
-          tools: [{ googleSearch: {} }],
-          responseMimeType: "application/json",
-          thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
+          tools: [{ googleSearch: {} }]
         }
       });
 
@@ -240,21 +238,23 @@ export const MedicineSearch: React.FC<MedicineSearchProps> = ({ onClose, lang })
           >
             <X className="w-6 h-6 text-gray-500" />
           </button>
-          <form onSubmit={handleSearch} className="flex-1 relative">
-            <input
-              type="text"
+          <div className="flex-1 relative">
+            <MedicineAutocomplete 
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={setQuery}
+              onSelect={(medicine) => {
+                setQuery(medicine.nom);
+                handleSearch(undefined, medicine.nom);
+              }}
               placeholder={lang === 'fr' ? "Nom du médicament ou générique..." : "اسم الدواء أو الجنيس..."}
-              className="w-full pl-10 pr-4 py-3 bg-gray-50 border-none rounded-3xl text-sm focus:ring-2 focus:ring-blue-500 transition-all"
-              autoFocus
+              lang={lang}
+              inputClassName="w-full pl-10 pr-4 py-3 bg-gray-50 border-none rounded-3xl text-sm focus:ring-2 focus:ring-[#00356B] transition-all"
             />
-            <Search className={`absolute ${lang === 'ar' ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400`} />
-          </form>
+          </div>
           <button 
             onClick={() => handleSearch()}
             disabled={isLoading || !query.trim()}
-            className="px-4 py-2.5 bg-blue-600 text-white rounded-2xl text-sm font-bold shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-all"
+            className="px-4 py-2.5 bg-[#00356B] text-white rounded-2xl text-sm font-bold shadow-sm hover:bg-[#002a55] disabled:opacity-50 transition-all"
           >
             {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : (lang === 'fr' ? "Chercher" : "بحث")}
           </button>
