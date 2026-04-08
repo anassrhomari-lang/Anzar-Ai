@@ -1361,7 +1361,15 @@ export default function App() {
       {/* Sidebar */}
       <div className={`fixed top-0 ${lang === 'ar' ? 'right-0' : 'left-0'} bottom-0 w-72 bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out flex flex-col ${isMenuOpen ? "translate-x-0" : (lang === 'ar' ? "translate-x-full" : "-translate-x-full")}`}>
         <div className="p-4 flex items-center justify-between border-b border-gray-100">
-          <div className="text-xl md:text-2xl font-bold tracking-tight text-blue-600">anzar</div>
+          <div className="flex items-center gap-2">
+            <img 
+              src="https://framerusercontent.com/images/YPAzIjoMNrFadoMFFkX13J0nXrs.png?scale-down-to=512&width=3432&height=3432" 
+              alt="AnzarAI Logo" 
+              className="w-8 h-8 object-contain"
+              referrerPolicy="no-referrer"
+            />
+            <div className="text-xl md:text-2xl font-bold tracking-tight text-[#00356B]">Anzar</div>
+          </div>
           <motion.button 
             whileHover={{ scale: 1.1, rotate: 90 }}
             whileTap={{ scale: 0.9 }}
@@ -1495,7 +1503,13 @@ export default function App() {
             onClick={() => setMessages([])}
             className="flex items-center gap-2 hover:opacity-80 transition-opacity ml-1"
           >
-            <div className="text-xl md:text-3xl font-bold tracking-tighter bg-gradient-to-br from-blue-600 to-indigo-700 bg-clip-text text-transparent">anzar</div>
+            <img 
+              src="https://framerusercontent.com/images/YPAzIjoMNrFadoMFFkX13J0nXrs.png?scale-down-to=512&width=3432&height=3432" 
+              alt="AnzarAI Logo" 
+              className="w-8 h-8 md:w-10 md:h-10 object-contain"
+              referrerPolicy="no-referrer"
+            />
+            <div className="text-xl md:text-3xl font-bold tracking-tighter text-[#00356B]">Anzar</div>
           </motion.button>
         </div>
         <div className="flex items-center gap-3">

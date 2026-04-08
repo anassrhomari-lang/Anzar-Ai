@@ -77,9 +77,14 @@ export const LandingSections: React.FC<LandingSectionsProps> = ({ lang, onTrigge
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50/80 text-blue-600 text-[10px] md:text-xs font-bold uppercase tracking-widest mb-8 border border-blue-100 shadow-sm backdrop-blur-sm"
+          className="inline-flex items-center gap-3 px-5 py-2 rounded-full bg-white/60 text-blue-600 text-[10px] md:text-xs font-bold uppercase tracking-widest mb-8 border border-white/40 shadow-xl backdrop-blur-md"
         >
-          <Sparkles className="w-3.5 h-3.5 md:w-4 md:h-4" />
+          <img 
+            src="https://framerusercontent.com/images/YPAzIjoMNrFadoMFFkX13J0nXrs.png?scale-down-to=512&width=3432&height=3432" 
+            alt="AnzarAI Logo" 
+            className="w-6 h-6 md:w-8 md:h-8 object-contain"
+            referrerPolicy="no-referrer"
+          />
           {lang === 'fr' ? "Intelligence Artificielle Médicale" : "الذكاء الاصطناعي الطبي"}
         </motion.div>
         <h2 className="text-4xl md:text-6xl lg:text-7xl font-bold text-slate-900 mb-8 leading-[1.05] tracking-tight">
@@ -103,7 +108,7 @@ export const LandingSections: React.FC<LandingSectionsProps> = ({ lang, onTrigge
           <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-indigo-400/10 rounded-full blur-3xl pointer-events-none" />
 
           <div className="absolute bottom-4 right-6 opacity-10 pointer-events-none select-none">
-            <span className="text-2xl font-black tracking-tighter text-blue-600">ANZAR</span>
+            <span className="text-2xl font-black tracking-tighter text-[#00356B]">ANZAR</span>
           </div>
 
           <div className="flex flex-col gap-8 relative z-10">
