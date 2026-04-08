@@ -1380,14 +1380,14 @@ export default function App() {
           </motion.button>
         </div>
         
-        <div className="p-6">
+        <div className="p-4 md:p-6">
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={startNewChat}
-            className="w-full py-3.5 md:py-4 px-6 bg-[#00356B] text-white rounded-[1.25rem] font-bold text-sm md:text-base flex items-center justify-center gap-3 shadow-xl shadow-blue-900/20 hover:bg-[#002a54] transition-all"
+            className="w-full py-3 md:py-4 px-5 md:px-6 bg-[#00356B] text-white rounded-2xl md:rounded-[1.25rem] font-bold text-sm md:text-base flex items-center justify-center gap-2 md:gap-3 shadow-xl shadow-blue-900/20 hover:bg-[#002a54] transition-all"
           >
-            <Plus className="w-5 h-5" />
+            <Plus className="w-4 h-4 md:w-5 md:h-5" />
             {lang === 'fr' ? 'Nouvelle discussion' : 'محادثة جديدة'}
           </motion.button>
         </div>
@@ -1420,7 +1420,7 @@ export default function App() {
               <div
                 key={conv.id}
                 onClick={() => loadConversation(conv)}
-                className={`group relative flex items-center gap-4 px-4 py-4 rounded-2xl cursor-pointer transition-all ${
+                className={`group relative flex items-center gap-3 md:gap-4 px-3 md:px-4 py-3 md:py-4 rounded-xl md:rounded-2xl cursor-pointer transition-all ${
                   currentConversationId === conv.id 
                     ? "bg-blue-50/50 text-[#00356B] border border-blue-100/50 shadow-sm" 
                     : "hover:bg-gray-50/50 text-gray-600"
@@ -1478,13 +1478,13 @@ export default function App() {
       </div>
 
       {/* Header */}
-      <header className="sticky top-0 z-50 flex items-center justify-between px-6 md:px-12 lg:px-20 py-4 md:py-6 bg-white/30 backdrop-blur-3xl border-b border-white/20 shrink-0">
-        <div className="flex items-center gap-4 md:gap-6">
+      <header className="sticky top-0 z-50 flex items-center justify-between px-4 md:px-12 lg:px-20 py-3 md:py-6 bg-white/30 backdrop-blur-3xl border-b border-white/20 shrink-0">
+        <div className="flex items-center gap-3 md:gap-6">
           <motion.button 
             whileHover={{ scale: 1.05, backgroundColor: 'rgba(255, 255, 255, 0.6)' }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setIsMenuOpen(true)}
-            className="p-3 text-[#00356B] bg-white/40 backdrop-blur-xl rounded-2xl transition-all border border-white/40 shadow-lg shadow-blue-900/5 hover:shadow-xl"
+            className="p-2 md:p-3 text-[#00356B] bg-white/40 backdrop-blur-xl rounded-xl md:rounded-2xl transition-all border border-white/40 shadow-lg shadow-blue-900/5 hover:shadow-xl"
           >
             <PanelLeft className={`w-5 h-5 md:w-6 md:h-6 ${lang === 'ar' ? 'rotate-180' : ''}`} />
           </motion.button>
@@ -1492,7 +1492,7 @@ export default function App() {
             whileHover={{ scale: 1.05, backgroundColor: 'rgba(255, 255, 255, 0.6)' }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setMessages([])}
-            className="p-3 text-[#00356B] bg-white/40 backdrop-blur-xl rounded-2xl transition-all border border-white/40 shadow-lg shadow-blue-900/5 hover:shadow-xl"
+            className="p-2 md:p-3 text-[#00356B] bg-white/40 backdrop-blur-xl rounded-xl md:rounded-2xl transition-all border border-white/40 shadow-lg shadow-blue-900/5 hover:shadow-xl"
             title={lang === 'fr' ? 'Accueil' : 'الرئيسية'}
           >
             <Home className="w-5 h-5 md:w-6 md:h-6" />
@@ -1512,12 +1512,12 @@ export default function App() {
             <div className="text-xl md:text-3xl font-bold tracking-tighter text-[#00356B]">Anzar</div>
           </motion.button>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 md:gap-4">
           <motion.button 
             whileHover={{ scale: 1.05, rotate: 5 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setLang(lang === 'fr' ? 'ar' : 'fr')}
-            className="px-4 md:px-6 py-2 md:py-2.5 rounded-2xl bg-white/60 backdrop-blur-xl border border-white/40 flex items-center justify-center text-xs md:text-sm font-bold text-[#00356B] transition-all shadow-lg shadow-blue-900/5 hover:shadow-xl"
+            className="px-3 md:px-6 py-1.5 md:py-2.5 rounded-xl md:rounded-2xl bg-white/60 backdrop-blur-xl border border-white/40 flex items-center justify-center text-xs md:text-sm font-bold text-[#00356B] transition-all shadow-lg shadow-blue-900/5 hover:shadow-xl"
           >
             {lang === 'fr' ? 'AR' : 'FR'}
           </motion.button>

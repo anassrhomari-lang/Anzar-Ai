@@ -24,15 +24,15 @@
   }
 
   .glass-card {
-    @apply bg-white/40 backdrop-blur-2xl border border-white/40 shadow-2xl shadow-slate-200/20 rounded-[2.5rem];
+    @apply bg-white/40 backdrop-blur-2xl border border-white/40 shadow-2xl shadow-slate-200/20 rounded-3xl md:rounded-[2.5rem];
   }
 
   .glass-button {
-    @apply bg-white/60 backdrop-blur-xl border border-white/40 shadow-lg shadow-slate-200/10 rounded-2xl transition-all active:scale-95;
+    @apply bg-white/60 backdrop-blur-xl border border-white/40 shadow-lg shadow-slate-200/10 rounded-xl md:rounded-2xl transition-all active:scale-95;
   }
 
   .brand-button {
-    @apply bg-[#00356B] text-white shadow-xl shadow-blue-900/10 rounded-2xl transition-all active:scale-95 hover:bg-[#002a54];
+    @apply bg-[#00356B] text-white shadow-xl shadow-blue-900/10 rounded-xl md:rounded-2xl transition-all active:scale-95 hover:bg-[#002a54];
   }
 
   .medical-bg::before,
