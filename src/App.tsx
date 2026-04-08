@@ -1551,10 +1551,10 @@ export default function App() {
                         <div className="absolute inset-0 w-3 h-3 bg-green-500 rounded-full animate-ping opacity-20" />
                       </div>
                       <div>
-                        <h3 className="text-sm md:text-base font-bold text-blue-900 leading-tight">
+                        <h3 className="text-sm md:text-base font-bold text-[#00356B] leading-tight">
                           {lang === 'fr' ? "Pharmacies de garde ouvertes" : "صيدليات الحراسة مفتوحة"} · {getDayNightStatus()}
                         </h3>
-                        <p className="text-xs md:text-sm text-blue-600 mt-0.5">
+                        <p className="text-xs md:text-sm text-[#00356B]/70 mt-0.5">
                           {nearbyCount !== null 
                             ? (lang === 'fr' ? `${nearbyCount} pharmacies à moins de 2km` : `${nearbyCount} صيدليات على بعد أقل من 2 كم`)
                             : (lang === 'fr' ? "Recherche à proximité..." : "البحث عن الصيدليات القريبة...")}
@@ -1565,17 +1565,17 @@ export default function App() {
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={triggerPharmacyFinder}
-                      className="px-4 py-2 bg-blue-600 text-white text-xs md:text-sm font-bold rounded-xl shadow-lg shadow-blue-200 shrink-0"
+                      className="px-4 py-2 bg-[#00356B] text-white text-xs md:text-sm font-bold rounded-xl shadow-lg shadow-blue-900/20 shrink-0"
                     >
                       {lang === 'fr' ? "Voir" : "عرض"}
                     </motion.button>
                   </motion.div>
                 )}
 
-                <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold tracking-tight text-slate-900 mb-2">
+                <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold tracking-tight text-[#00356B] mb-2">
                   {lang === 'fr' ? "Bonjour," : "مرحباً،"}
                 </h1>
-                <p className="text-xl md:text-2xl text-slate-500 font-medium mb-10">
+                <p className="text-xl md:text-2xl text-[#00356B]/60 font-medium mb-10">
                   {lang === 'fr' ? "Comment puis-je vous aider aujourd'hui ?" : "كيف يمكنني مساعدتك اليوم؟"}
                 </p>
 
